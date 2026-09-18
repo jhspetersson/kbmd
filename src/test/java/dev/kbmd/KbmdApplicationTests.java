@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
+import dev.kbmd.calendar.CalendarService;
 import dev.kbmd.flashcards.FlashcardService;
 import dev.kbmd.habits.HabitService;
 import dev.kbmd.index.NoteIndex;
@@ -51,6 +52,8 @@ class KbmdApplicationTests {
     HabitService habitService;
     @Autowired
     TaskService taskService;
+    @Autowired
+    CalendarService calendarService;
     @Autowired
     WebApplicationContext context;
     @Autowired
@@ -260,6 +263,57 @@ class KbmdApplicationTests {
         board = taskService.addCard("boards/Project.md", "Doing", "Ship it");
         assertThat(board.columns().get(1).cards()).extracting(TaskService.Card::text).containsExactly("Write spec", "Ship it");
         org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> taskService.move("boards/Project.md", 1, "Doing", 0));
+    }
+
+    @Test
+    void calendarExpandsRulesFromNotes() {
+        notes.save("cal/Events.md", """
+                #calendar
+
+                - 2026-09-25 14:30-15:00 Dentist
+                - 2026-10-03..2026-10-05 Trip
+                - every day 08:00 Standup until 2026-09-22
+                - every Mon,Wed 07:00 Gym
+                - every 2 weeks Tue Team sync from 2026-09-15
+                - every month 1 Rent
+                - every month last Invoices
+                - every year 03-14 Pi day
+                - birthday 1990-09-20 Mom
+                - not an event
+                """);
+        notes.save("Daily/2026-09-21.md", "# 2026-09-21\n");
+        notes.save("cal/Todo.md", "- [ ] Pay taxes due:2026-09-23\n- [x] Old 📅 2026-09-24\n");
+
+        List<CalendarService.Occurrence> week = calendarService.occurrences(java.time.LocalDate.parse("2026-09-20"), java.time.LocalDate.parse("2026-09-26"));
+        java.util.function.Function<String, List<String>> on = date -> week.stream().filter(o -> o.date().equals(date)).map(CalendarService.Occurrence::title).toList();
+        assertThat(on.apply("2026-09-20")).containsExactlyInAnyOrder("Mom", "Standup");         // Sunday: birthday, daily rule
+        assertThat(week.stream().filter(o -> o.title().equals("Mom")).findFirst().orElseThrow().detail()).isEqualTo("36");
+        assertThat(on.apply("2026-09-21")).containsExactlyInAnyOrder("2026-09-21", "Gym", "Standup"); // Monday: daily note
+        assertThat(on.apply("2026-09-22")).containsExactly("Standup");                          // Tuesday, one week after the 15th: 2-week rule off
+        assertThat(on.apply("2026-09-23")).containsExactlyInAnyOrder("Gym", "Pay taxes");        // until stops the standup; open task with due date
+        assertThat(on.apply("2026-09-24")).isEmpty();                                            // done task stays out
+        assertThat(on.apply("2026-09-25")).containsExactly("Dentist");
+        CalendarService.Occurrence dentist = week.stream().filter(o -> o.title().equals("Dentist")).findFirst().orElseThrow();
+        assertThat(dentist.time()).isEqualTo("14:30");
+        assertThat(dentist.endTime()).isEqualTo("15:00");
+        assertThat(dentist.recurring()).isFalse();
+
+        List<CalendarService.Occurrence> october = calendarService.occurrences(java.time.LocalDate.parse("2026-09-28"), java.time.LocalDate.parse("2026-10-31"));
+        assertThat(october.stream().filter(o -> o.title().equals("Team sync")).map(CalendarService.Occurrence::date)).containsExactly("2026-09-29", "2026-10-13", "2026-10-27");
+        assertThat(october.stream().filter(o -> o.title().equals("Rent")).map(CalendarService.Occurrence::date)).containsExactly("2026-10-01");
+        assertThat(october.stream().filter(o -> o.title().equals("Invoices")).map(CalendarService.Occurrence::date)).containsExactly("2026-09-30", "2026-10-31");
+        assertThat(october.stream().filter(o -> o.title().equals("Trip")).findFirst().orElseThrow().endDate()).isEqualTo("2026-10-05");
+        assertThat(calendarService.occurrences(java.time.LocalDate.parse("2027-03-01"), java.time.LocalDate.parse("2027-03-31")))
+                .extracting(CalendarService.Occurrence::title).contains("Pi day");
+
+        String ics = calendarService.ics();
+        assertThat(ics).contains("RRULE:FREQ=WEEKLY;BYDAY=MO,WE").contains("RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=TU")
+                .contains("RRULE:FREQ=MONTHLY;BYMONTHDAY=-1").contains("RRULE:FREQ=YEARLY;BYMONTH=9;BYMONTHDAY=20")
+                .contains("RRULE:FREQ=DAILY;UNTIL=20260922").contains("DTSTART:20260925T143000").contains("DTEND;VALUE=DATE:20261006");
+
+        assertThat(calendarService.add("2026-11-01 10:00", "Vet")).isEqualTo("2026-11-01 10:00 Vet");
+        assertThat(vault.read("Calendar.md")).endsWith("#calendar\n\n- 2026-11-01 10:00 Vet\n");
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> calendarService.add("someday", "Vet"));
     }
 
     @Test

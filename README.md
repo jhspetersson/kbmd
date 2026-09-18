@@ -20,6 +20,10 @@ the app is a Spring Boot server with a React UI, shipped as a single jar or Dock
   (`📅 2026-09-20` or `due:2026-09-20`), tags; tick a box and the note is edited in place; quick-add to `Tasks.md`
 - **Kanban** – a note tagged `#kanban` is a board, each `## heading` a column, each list item a card; drag cards
   between columns (a card moved into *Done* is checked off), add cards; the note is the only storage
+- **Calendar** – month view of everything dated: events from notes tagged `#calendar` (one-off, ranges, and
+  repeating rules: `every day 08:00`, `every Mon,Wed`, `every 2 weeks Tue from …`, `every month 1`, `every year 03-14`,
+  `birthday 1990-03-14 Mom` with the age), daily notes and tasks with due dates; add events from the tab; `.ics` export
+  with recurrence for any calendar app
 - **Habit tracker** – list habits in a note tagged `#habits` (`- Gym (3x/week)` sets a weekly target), check days off
   in the Habits tab; streaks and weekly counts, history kept in `<vault>/.habits.json` (synced)
 - **Sync with GitHub / GitLab** – two-way Git sync over HTTPS using an access token, manual or on a timer

@@ -48,6 +48,10 @@ scope, since the repository API is used rather than Git over HTTPS).
   embedded in that note. *Save to kbmd* also appears in the text selection menu.
 - Launcher shortcuts (long-press the icon): new drawing, new note, tasks, daily note, habits, search.
 - Attach button / upload: system file picker, with the **camera** offered beside it.
+- **Calendar**: the Calendar tab can show the phone's own calendars next to the vault's events (a *Phone calendar*
+  switch; it asks for the calendar permission once), every vault event has *Add to phone calendar* (opens the
+  calendar app's editor with the event and its recurrence filled in), and the `.ics` export saves through the
+  system dialog.
 - Exports (vault zip, Anki deck) go through the system "save as" dialog; other attachments open in their apps.
 - System bars follow the app's light/dark theme; edge-to-edge with the keyboard and the camera cutout respected.
 

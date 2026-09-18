@@ -72,6 +72,25 @@ A note tagged `#kanban` is a board: every `## heading` is a column, every list i
 from the **Kanban** button, drag cards between columns (or use a card's `⋯` menu on a phone). A card dropped
 into a column called *Done* is checked off.
 
+## Calendar
+
+Events are list items in a note tagged `#calendar`, each starting with a date or a rule:
+
+````
+#calendar
+
+- 2026-09-25 14:30 Dentist
+- 2026-10-03..2026-10-05 Trip
+- every Mon,Wed 07:00 Gym
+- every 2 weeks Tue Team sync from 2026-09-15
+- every month 1 Rent
+- every year 03-14 Pi day
+- birthday 1990-03-14 Mom
+````
+
+`every day`, `every weekdays`, `every month last`, a time range like `14:30-15:00`, and `until 2026-12-31` work too.
+The **Calendar** tab shows them with daily notes and due tasks, adds events for you, and exports an `.ics` file.
+
 ## Habits
 
 List the habits you want to keep in any note tagged `#habits`, one per list item:

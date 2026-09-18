@@ -19,7 +19,9 @@ import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.provider.CalendarContract;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
@@ -67,6 +69,7 @@ public class MainActivity extends Activity {
     private static final String FILES_AUTHORITY = "dev.kbmd.android.files";
     private static final int REQUEST_PICK_FILES = 1;
     private static final int REQUEST_SAVE_FILE = 2;
+    private static final int REQUEST_CALENDAR = 3;
     private static final int LIGHT_BARS = 0xffececee;
     private static final int DARK_BARS = 0xff19191c;
 
@@ -147,7 +150,7 @@ public class MainActivity extends Activity {
                     openVaultFile(uri.getQueryParameter("path"));
                     return true;
                 }
-                if (path.equals("/api/export") || path.equals("/api/flashcards/export")) {
+                if (path.equals("/api/export") || path.equals("/api/flashcards/export") || path.equals("/api/calendar/export")) {
                     saveAs(uri.toString(), null, null);
                     return true;
                 }
@@ -213,6 +216,41 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void setTheme(boolean dark) {
             runOnUiThread(() -> applyBars(dark));
+        }
+
+        /** Whether the phone's calendars may be read; the UI asks for the permission through {@link #requestCalendarAccess()}. */
+        @JavascriptInterface
+        public boolean hasCalendarAccess() {
+            return checkSelfPermission(android.Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED;
+        }
+
+        @JavascriptInterface
+        public void requestCalendarAccess() {
+            runOnUiThread(() -> requestPermissions(new String[] {android.Manifest.permission.READ_CALENDAR}, REQUEST_CALENDAR));
+        }
+
+        /**
+         * Events from the phone's calendars between two dates (inclusive), as JSON, or null without permission.
+         * Called from the page's thread: a small content-provider query, no UI.
+         */
+        @JavascriptInterface
+        public String phoneEvents(String from, String to) {
+            if (!hasCalendarAccess()) {
+                return null;
+            }
+            return PhoneCalendar.events(MainActivity.this, from, to);
+        }
+
+        /** Hands an event to the phone's calendar app (its own editor opens; nothing is written silently). */
+        @JavascriptInterface
+        public void addToCalendar(String title, String date, String time, String endTime, String rrule) {
+            runOnUiThread(() -> {
+                try {
+                    startActivity(PhoneCalendar.insertIntent(title, date, time, endTime, rrule));
+                } catch (RuntimeException e) {
+                    Toast.makeText(MainActivity.this, "No calendar app found", Toast.LENGTH_LONG).show();
+                }
+            });
         }
 
         /** The UI is up and listening for commands. */
@@ -456,6 +494,14 @@ public class MainActivity extends Activity {
         } catch (ActivityNotFoundException e) {
             fileCallback = null;
             return false;
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int request, String[] permissions, int[] results) {
+        super.onRequestPermissionsResult(request, permissions, results);
+        if (request == REQUEST_CALENDAR) {
+            command("refresh", null); // the calendar tab re-reads with the phone's events now visible (or a plain refusal)
         }
     }
 

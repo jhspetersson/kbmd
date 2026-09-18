@@ -281,6 +281,25 @@ public class ApiServerTest {
     }
 
     @Test
+    public void calendarExpandsRules() throws Exception {
+        json("POST", "/api/notes", new JSONObject().put("path", "Events.md").put("content",
+                "#calendar\n\n- 2026-09-25 14:30 Dentist\n- every Mon,Wed 07:00 Gym\n- every month last Invoices\n- birthday 1990-09-20 Mom\n- every 2 weeks Tue Sync from 2026-09-15\n"));
+        JSONArray week = new JSONArray(call("GET", "/api/calendar?from=2026-09-20&to=2026-09-30", null, null).text());
+        java.util.List<String> summary = new java.util.ArrayList<>();
+        for (int i = 0; i < week.length(); i++) {
+            summary.add(week.getJSONObject(i).getString("date") + " " + week.getJSONObject(i).getString("title"));
+        }
+        assertEquals(java.util.Arrays.asList("2026-09-20 Mom", "2026-09-21 Gym", "2026-09-23 Gym", "2026-09-25 Dentist", "2026-09-28 Gym",
+                "2026-09-29 Sync", "2026-09-30 Invoices", "2026-09-30 Gym"), summary);
+        assertEquals("36", week.getJSONObject(0).getString("detail"));
+        assertEquals("14:30", week.getJSONObject(3).getString("time"));
+        assertEquals("Calendar.md", json("POST", "/api/calendar/events", new JSONObject().put("spec", "2026-11-01 10:00").put("title", "Vet")).json().getString("notePath"));
+        assertEquals(400, json("POST", "/api/calendar/events", new JSONObject().put("spec", "someday").put("title", "Vet")).status);
+        String ics = call("GET", "/api/calendar/export", null, null).text();
+        assertTrue(ics, ics.contains("RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=TU") && ics.contains("RRULE:FREQ=MONTHLY;BYMONTHDAY=-1") && ics.contains("SUMMARY:Vet"));
+    }
+
+    @Test
     public void syncSettingsNeverReturnTheToken() throws Exception {
         JSONObject saved = json("PUT", "/api/sync/settings", new JSONObject().put("provider", "gitlab").put("remoteUrl", "me/notes")
                 .put("token", "glpat-secret").put("branch", "").put("autoSyncMinutes", 15)).json();

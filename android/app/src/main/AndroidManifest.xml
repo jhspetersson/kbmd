@@ -3,6 +3,8 @@
 
     <!-- only used by sync with GitHub / GitLab -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- optional: shows the phone's calendar events in the Calendar tab, only after the user allows it there -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
 
     <queries>
         <intent>

@@ -141,6 +141,23 @@ export interface Board {
   columns: Column[];
 }
 
+export interface Occurrence {
+  date: string;
+  endDate: string | null;
+  time: string | null;
+  endTime: string | null;
+  title: string;
+  notePath: string;
+  line: number;
+  /** event, birthday, daily (a daily note), task (with a due date) or phone (the Android calendar) */
+  kind: 'event' | 'birthday' | 'daily' | 'task' | 'phone';
+  recurring: boolean;
+  /** the age for birthdays; the calendar's name for phone events */
+  detail: string | null;
+  /** iCalendar recurrence rule, for handing the event to another calendar */
+  rrule: string | null;
+}
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -210,6 +227,9 @@ export const api = {
   moveCard: (path: string, line: number, column: string, position: number) =>
     request<Board>('/api/kanban/move', json('POST', { path, line, column, position })),
   addCard: (path: string, column: string, text: string) => request<Board>('/api/kanban/card', json('POST', { path, column, text })),
+  calendar: (from: string, to: string) => request<Occurrence[]>(`/api/calendar?from=${from}&to=${to}`),
+  addEvent: (spec: string, title: string) => request<{ line: string; notePath: string }>('/api/calendar/events', json('POST', { spec, title })),
+  calendarExportUrl: '/api/calendar/export',
   habits: (days: number) => request<HabitBoard>(`/api/habits?days=${days}`),
   toggleHabit: (id: string, date: string) => request<{ done: boolean }>('/api/habits/toggle', json('POST', { id, date })),
   syncSettings: () => request<SyncSettings>('/api/sync/settings'),

@@ -3,6 +3,7 @@ package dev.kbmd.android.server;
 import java.io.IOException;
 import java.nio.file.Path;
 
+import dev.kbmd.android.calendar.CalendarService;
 import dev.kbmd.android.flashcards.FlashcardService;
 import dev.kbmd.android.habits.HabitService;
 import dev.kbmd.android.index.NoteIndex;
@@ -22,6 +23,7 @@ public final class Backend {
     public final FlashcardService flashcards;
     public final HabitService habits;
     public final TaskService tasks;
+    public final CalendarService calendar;
     public final SyncService sync;
 
     /**
@@ -36,6 +38,7 @@ public final class Backend {
         flashcards = new FlashcardService(vault, index, markdown);
         habits = new HabitService(vault, index);
         tasks = new TaskService(vault, notes, index);
+        calendar = new CalendarService(vault, notes, index, tasks);
         sync = new SyncService(vault, index, privateDir);
     }
 }

@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import dev.kbmd.android.calendar.CalendarService;
 import dev.kbmd.android.flashcards.FlashcardService;
 import dev.kbmd.android.index.NoteIndex;
 import dev.kbmd.android.sync.SyncSettings;
@@ -258,6 +259,36 @@ public class ApiServer extends NanoHTTPD {
             case "POST /kanban/card": {
                 JSONObject request = jsonBody(body);
                 return json(200, board(backend.tasks.addCard(requiredText(request, "path"), requiredText(request, "column"), requiredText(request, "text"))));
+            }
+            case "GET /calendar": {
+                java.time.LocalDate from;
+                java.time.LocalDate to;
+                try {
+                    from = java.time.LocalDate.parse(param(session, "from"));
+                    to = java.time.LocalDate.parse(param(session, "to"));
+                } catch (java.time.format.DateTimeParseException e) {
+                    throw HttpError.badRequest("Dates must be YYYY-MM-DD");
+                }
+                JSONArray occurrences = new JSONArray();
+                for (CalendarService.Occurrence o : backend.calendar.occurrences(from, to)) {
+                    occurrences.put(new JSONObject().put("date", o.date).put("endDate", o.endDate == null ? JSONObject.NULL : o.endDate)
+                            .put("time", o.time == null ? JSONObject.NULL : o.time).put("endTime", o.endTime == null ? JSONObject.NULL : o.endTime)
+                            .put("title", o.title).put("notePath", o.notePath).put("line", o.line).put("kind", o.kind)
+                            .put("recurring", o.recurring).put("detail", o.detail == null ? JSONObject.NULL : o.detail)
+                            .put("rrule", o.rrule == null ? JSONObject.NULL : o.rrule));
+                }
+                return json(200, occurrences);
+            }
+            case "POST /calendar/events": {
+                JSONObject request = jsonBody(body);
+                return json(200, new JSONObject().put("line", backend.calendar.add(requiredText(request, "spec"), requiredText(request, "title")))
+                        .put("notePath", CalendarService.EVENTS_NOTE));
+            }
+            case "GET /calendar/export": {
+                byte[] text = backend.calendar.ics().getBytes(StandardCharsets.UTF_8);
+                Response response = newFixedLengthResponse(Response.Status.OK, "text/calendar; charset=utf-8", new ByteArrayInputStream(text), text.length);
+                response.addHeader("Content-Disposition", "attachment; filename=\"kbmd-calendar.ics\"");
+                return response;
             }
             case "GET /habits": {
                 String days = optionalParam(session, "days");

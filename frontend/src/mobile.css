@@ -265,4 +265,61 @@
   .kanban-card-menu {
     opacity: 1;
   }
+  .calendar {
+    padding: 12px 10px 0;
+  }
+  .calendar-body {
+    flex-direction: column;
+    overflow: auto;
+  }
+  .calendar-grid {
+    flex: none;
+    grid-template-rows: auto repeat(6, 44px);
+    overflow: visible;
+  }
+  .calendar-cell {
+    padding: 3px;
+    border-radius: 5px;
+  }
+  .calendar-daynum {
+    min-width: 20px;
+    font-size: 12px;
+    padding: 0 3px;
+  }
+  .calendar-pills {
+    flex-direction: row;
+    gap: 2px;
+    padding-left: 2px;
+  }
+  .calendar-pill {
+    width: 6px;
+    height: 6px;
+    padding: 0;
+    border-radius: 3px;
+    border-left: none;
+    background: var(--accent);
+  }
+  .calendar-pill.birthday {
+    background: #e0679a;
+  }
+  .calendar-pill.task {
+    background: var(--syntax-number);
+  }
+  .calendar-pill.daily {
+    background: var(--text-faint);
+  }
+  .calendar-pill.phone {
+    background: var(--ok);
+  }
+  .calendar-more {
+    font-size: 9px;
+    padding: 0;
+  }
+  .calendar-day {
+    flex: none;
+    overflow: visible;
+  }
+  .calendar-month {
+    min-width: 0;
+  }
 }
