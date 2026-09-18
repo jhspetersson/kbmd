@@ -1,0 +1,5 @@
+# the tree is LF throughout; keeps mvnw/gradlew/kbmd.sh runnable on Linux and Docker
+* text=auto eol=lf
+*.png binary
+*.jar binary
+*.woff2 binary
