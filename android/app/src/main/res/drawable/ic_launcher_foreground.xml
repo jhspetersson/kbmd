@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- a cut gem, inside the 66dp safe zone of the 108dp adaptive icon canvas -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,34 L68,34 L80,48 L54,78 L28,48 Z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#7b5cd6"
+        android:strokeWidth="2.2"
+        android:strokeLineJoin="round"
+        android:pathData="M28,48 L80,48 M40,34 L47,48 L54,78 L61,48 L68,34 M54,34 L47,48 M54,34 L61,48" />
+</vector>

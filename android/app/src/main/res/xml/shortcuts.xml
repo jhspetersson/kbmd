@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="new_drawing"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_drawing"
+        android:shortcutShortLabel="@string/shortcut_drawing"
+        android:shortcutLongLabel="@string/shortcut_drawing_long">
+        <intent
+            android:action="dev.kbmd.android.NEW_DRAWING"
+            android:targetPackage="dev.kbmd.android"
+            android:targetClass="dev.kbmd.android.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="new_note"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_note"
+        android:shortcutShortLabel="@string/shortcut_note"
+        android:shortcutLongLabel="@string/shortcut_note">
+        <intent
+            android:action="dev.kbmd.android.NEW_NOTE"
+            android:targetPackage="dev.kbmd.android"
+            android:targetClass="dev.kbmd.android.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="daily"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_daily"
+        android:shortcutShortLabel="@string/shortcut_daily"
+        android:shortcutLongLabel="@string/shortcut_daily_long">
+        <intent
+            android:action="dev.kbmd.android.DAILY"
+            android:targetPackage="dev.kbmd.android"
+            android:targetClass="dev.kbmd.android.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="search"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_search"
+        android:shortcutShortLabel="@string/shortcut_search"
+        android:shortcutLongLabel="@string/shortcut_search">
+        <intent
+            android:action="dev.kbmd.android.SEARCH"
+            android:targetPackage="dev.kbmd.android"
+            android:targetClass="dev.kbmd.android.MainActivity" />
+    </shortcut>
+</shortcuts>

@@ -1,0 +1,78 @@
+# Welcome to kbmd
+
+Your notes are plain Markdown files in a folder on your disk. Nothing is locked in. #help
+
+## Linking
+
+- Type `[[` to link to another note: [[Ideas]] (click it, the note is created on first use).
+- `[[Note#Heading]]` jumps to a heading, `[[Note|shown text]]` changes the label.
+- Tags look like #getting-started. Click one to find every note that has it.
+- The right sidebar lists **backlinks**; the graph button shows how everything connects.
+
+## Files and images
+
+Drop, paste or upload files into the editor. They are stored in `attachments/` and embedded with
+`![[picture.png]]` (add `|300` to set a width).
+
+A gallery takes image names or a whole folder, one per line:
+
+````
+```gallery
+attachments/
+```
+````
+
+## Diagrams
+
+Mermaid diagrams are written as text:
+
+```mermaid
+graph LR
+    Note -->|"[[link]]"| Other[Other note]
+    Other --> Graph((Graph view))
+    Note --> Graph
+```
+
+Free-form drawings are made with the built-in sketch editor: use **New drawing** in the sidebar,
+then embed it with `![[My drawing.excalidraw]]`.
+
+## Flashcards
+
+Any note tagged `#flashcards` is a deck named after the note; `#flashcards/spanish` names the deck
+yourself. Inside such a note, cards look like this:
+
+````
+#flashcards/spanish
+
+hola::hello
+gato:::cat
+
+How do you ask for the bill?
+?
+La cuenta, por favor.
+
+The capital of Spain is ==Madrid==.
+````
+
+- `Question::Answer` is one card; `:::` also asks it the other way round. One card per line, list items work too.
+- A line with just `?` splits a longer card into question (above) and answer (below); the card ends at the
+  next blank line. `??` adds the reverse card.
+- `==highlight==` hides that part of the paragraph (a cloze); each highlight is its own card.
+- Images, links and formatting work inside cards. Text in `inline code` or fenced code blocks never becomes a card.
+
+Review with spaced repetition from the graduation-cap button in the left ribbon (`Space` shows the answer,
+`1`-`4` rate it), or export a deck for Anki from the same place.
+
+## Everything else
+
+- [ ] Try the quick switcher: `Ctrl+O`
+- [ ] Search everything: `Ctrl+Shift+F` (supports `"exact phrases"`, `tag:help`, `path:folder`)
+- [ ] Set up sync with GitHub or GitLab in the sync dialog (bottom left)
+- [ ] Export the whole vault as a zip from the same corner
+
+| Shortcut | Action |
+| --- | --- |
+| `Ctrl+S` | Save now (notes also save automatically) |
+| `Ctrl+E` | Cycle editor / split / preview |
+| `Ctrl+O` | Quick switcher |
+| `Ctrl+Shift+F` | Search |

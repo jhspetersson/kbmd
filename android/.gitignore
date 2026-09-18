@@ -1,0 +1,8 @@
+.gradle/
+build/
+local.properties
+# built from ../frontend by build.ps1
+app/src/main/assets/web/
+# release signing key: keep a private backup, never commit
+keystore/
+kbmd.apk

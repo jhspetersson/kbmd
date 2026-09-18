@@ -1,0 +1,86 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Release signing is optional: without keystore/signing.properties the release build stays unsigned.
+def signingFile = rootProject.file('keystore/signing.properties')
+def signing = new Properties()
+if (signingFile.exists()) {
+    signingFile.withInputStream { signing.load(it) }
+}
+
+android {
+    namespace 'dev.kbmd.android'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'dev.kbmd.android'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0'
+    }
+
+    signingConfigs {
+        release {
+            if (signingFile.exists()) {
+                storeFile rootProject.file('keystore/' + signing.getProperty('storeFile'))
+                storePassword signing.getProperty('storePassword')
+                keyAlias signing.getProperty('keyAlias')
+                keyPassword signing.getProperty('keyPassword')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (signingFile.exists()) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    packaging {
+        resources {
+            excludes += ['META-INF/LICENSE*', 'META-INF/NOTICE*', 'META-INF/*.kotlin_module', 'META-INF/versions/**']
+        }
+    }
+
+    androidResources {
+        // the web UI is already compressed where it matters; keep fonts as they are
+        noCompress += ['woff2']
+    }
+
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
+
+    lint {
+        abortOnError false
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core:1.13.1'
+    implementation 'org.nanohttpd:nanohttpd:2.3.1'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+
+    def commonmark = '0.30.0'
+    implementation "org.commonmark:commonmark:$commonmark"
+    implementation "org.commonmark:commonmark-ext-gfm-tables:$commonmark"
+    implementation "org.commonmark:commonmark-ext-gfm-strikethrough:$commonmark"
+    implementation "org.commonmark:commonmark-ext-task-list-items:$commonmark"
+    implementation "org.commonmark:commonmark-ext-autolink:$commonmark"
+    implementation "org.commonmark:commonmark-ext-heading-anchor:$commonmark"
+    implementation "org.commonmark:commonmark-ext-yaml-front-matter:$commonmark"
+
+    testImplementation 'junit:junit:4.13.2'
+    // android.jar only has stubs of org.json; unit tests need a real one
+    testImplementation 'org.json:json:20240303'
+}

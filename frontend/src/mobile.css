@@ -1,0 +1,222 @@
+/* Phones and touch screens. Loaded after styles.css; nothing here applies to a desktop browser with a mouse. */
+
+.sidebar-backdrop {
+  display: none;
+}
+
+/* ------------------------------------------------------------ finger-sized targets */
+
+@media (pointer: coarse) {
+  .ribbon button,
+  .ribbon-link,
+  .sidebar-actions button,
+  .tab-bar-actions button,
+  .toolbar button,
+  .icon-button {
+    padding: 9px;
+  }
+  .ribbon {
+    width: 50px;
+  }
+  .tree-row {
+    padding: 9px 8px;
+    font-size: 15px;
+    -webkit-touch-callout: none;
+  }
+  .tag-row,
+  .outline-row {
+    padding: 9px 12px;
+  }
+  .switcher-row {
+    padding: 11px 10px;
+  }
+  .context-menu button {
+    padding: 12px 14px;
+    font-size: 15px;
+  }
+  .tab-bar {
+    min-height: 44px;
+  }
+  .tab-close {
+    opacity: 1;
+    padding: 8px;
+  }
+  .panel-input,
+  .text-input,
+  .form-grid select {
+    padding: 10px 12px;
+    font-size: 16px;
+  }
+  .modal-actions button,
+  .flashcards button:not(.link-button) {
+    padding: 10px 16px;
+  }
+  .status-button {
+    padding: 6px 8px;
+  }
+  .toolbar {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .toolbar button {
+    flex: none;
+  }
+  .toolbar::-webkit-scrollbar,
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .lightbox img {
+    max-width: 100vw;
+  }
+  /* there is no hover on a touch screen, and a tapped element would stay highlighted */
+  .gallery figure:hover img {
+    transform: none;
+  }
+}
+
+/* ------------------------------------------------------------ phone layout */
+
+@media (max-width: 760px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto auto;
+  }
+  .workspace {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  /* the ribbon becomes a bottom bar, in reach of the thumb */
+  .ribbon {
+    grid-column: 1;
+    grid-row: 2;
+    flex-direction: row;
+    justify-content: space-between;
+    width: auto;
+    padding: 3px 6px;
+    gap: 0;
+    border-right: none;
+    border-top: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .ribbon::-webkit-scrollbar {
+    display: none;
+  }
+  .ribbon button,
+  .ribbon-link {
+    flex: none;
+    padding: 9px 8px;
+  }
+  .ribbon-spacer {
+    display: none;
+  }
+  /* typing: the keyboard has taken half the screen, the bar can wait */
+  .app:has(.cm-editor.cm-focused) .ribbon {
+    display: none;
+  }
+  .status-bar {
+    grid-row: 3;
+    gap: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .tab-bar {
+    background: var(--bg-ribbon);
+  }
+
+  /* side panels slide over the note instead of squeezing it; the bottom bar stays in reach to switch panels */
+  .sidebar.left,
+  .sidebar.right {
+    display: flex;
+    grid-column: 1;
+    grid-row: 1;
+    z-index: 40;
+    width: min(86vw, 340px);
+    box-shadow: var(--shadow);
+  }
+  .sidebar.right {
+    justify-self: end;
+  }
+  .sidebar-backdrop {
+    display: block;
+    grid-column: 1;
+    grid-row: 1;
+    z-index: 39;
+    background: rgba(0, 0, 0, 0.4);
+  }
+  .sidebar-actions {
+    justify-content: space-around;
+  }
+
+  /* side by side turns into editor above preview */
+  .note-panes {
+    flex-direction: column;
+  }
+  .mode-split .editor-pane {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    max-width: 150px;
+  }
+  .markdown-body {
+    padding: 16px 16px 40vh;
+    font-size: 16px;
+  }
+  .file-viewer {
+    padding: 16px;
+  }
+
+  .modal-backdrop {
+    padding-top: 4vh;
+  }
+  .modal {
+    width: 94vw;
+    max-height: 90vh;
+  }
+  .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px 0;
+  }
+  .form-grid > label {
+    padding-top: 8px;
+  }
+  .modal-actions {
+    flex-wrap: wrap;
+  }
+  .toast {
+    left: 12px;
+    right: 12px;
+    bottom: 90px;
+    max-width: none;
+  }
+
+  .graph-controls {
+    top: 8px;
+    left: 8px;
+    padding: 8px;
+    max-width: 60vw;
+  }
+  .flashcards {
+    padding: 16px 12px;
+  }
+  .card-side.markdown-body {
+    padding: 16px 12px;
+  }
+  .review-actions {
+    width: 100%;
+    gap: 6px;
+  }
+  .rating {
+    flex: 1;
+    min-width: 0;
+  }
+  .flashcards kbd {
+    display: none;
+  }
+  .deck-table th,
+  .deck-table td {
+    padding: 8px 5px;
+  }
+}

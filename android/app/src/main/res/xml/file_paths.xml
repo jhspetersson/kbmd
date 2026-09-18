@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- vault files opened in other apps -->
+    <external-files-path name="vault" path="vault/" />
+    <files-path name="vault-internal" path="vault/" />
+    <!-- photos taken for an upload -->
+    <cache-path name="camera" path="camera/" />
+</paths>
