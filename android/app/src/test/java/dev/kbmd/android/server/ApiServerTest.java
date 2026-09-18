@@ -258,6 +258,29 @@ public class ApiServerTest {
     }
 
     @Test
+    public void tasksAndKanbanEditTheNotes() throws Exception {
+        json("POST", "/api/notes", new JSONObject().put("path", "Plan.md").put("content", "- [ ] Buy seeds due:2026-05-01 #garden\n- [x] Order soil\n"));
+        JSONArray tasks = new JSONArray(call("GET", "/api/tasks", null, null).text());
+        assertEquals(2, tasks.length());
+        assertEquals("Buy seeds #garden", tasks.getJSONObject(0).getString("text"));
+        assertEquals("2026-05-01", tasks.getJSONObject(0).getString("due"));
+        assertTrue(json("POST", "/api/tasks/toggle", new JSONObject().put("path", "Plan.md").put("line", 1)).json().getBoolean("done"));
+        assertEquals("Tasks.md", json("POST", "/api/tasks", new JSONObject().put("text", "Call the nursery")).json().getString("notePath"));
+        assertEquals("# Tasks\n- [ ] Call the nursery\n", new String(Files.readAllBytes(vault.resolve("Tasks.md")), StandardCharsets.UTF_8));
+
+        json("POST", "/api/notes", new JSONObject().put("path", "Board.md").put("content", "#kanban\n\n## To do\n\n- [ ] Write spec\n  detail\n- [ ] Review\n\n## Done\n"));
+        JSONArray boards = new JSONArray(call("GET", "/api/kanban", null, null).text());
+        assertEquals(2, boards.getJSONObject(0).getJSONArray("columns").length());
+        JSONObject moved = json("POST", "/api/kanban/move", new JSONObject().put("path", "Board.md").put("line", 5).put("column", "Done").put("position", 0)).json();
+        JSONObject done = moved.getJSONArray("columns").getJSONObject(1).getJSONArray("cards").getJSONObject(0);
+        assertEquals("Write spec", done.getString("text"));
+        assertTrue(done.getBoolean("done"));
+        assertEquals("#kanban\n\n## To do\n\n- [ ] Review\n\n## Done\n\n- [x] Write spec\n  detail\n", new String(Files.readAllBytes(vault.resolve("Board.md")), StandardCharsets.UTF_8));
+        JSONObject added = json("POST", "/api/kanban/card", new JSONObject().put("path", "Board.md").put("column", "To do").put("text", "Ship")).json();
+        assertEquals(2, added.getJSONArray("columns").getJSONObject(0).getJSONArray("cards").length());
+    }
+
+    @Test
     public void syncSettingsNeverReturnTheToken() throws Exception {
         JSONObject saved = json("PUT", "/api/sync/settings", new JSONObject().put("provider", "gitlab").put("remoteUrl", "me/notes")
                 .put("token", "glpat-secret").put("branch", "").put("autoSyncMinutes", 15)).json();

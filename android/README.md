@@ -46,7 +46,7 @@ scope, since the repository API is used rather than Git over HTTPS).
   from the Samsung keyboard.
 - **Share to kbmd** from any app: text and links become a note in `Inbox/`, images and files become attachments
   embedded in that note. *Save to kbmd* also appears in the text selection menu.
-- Launcher shortcuts (long-press the icon): new drawing, new note, daily note, habits, search.
+- Launcher shortcuts (long-press the icon): new drawing, new note, tasks, daily note, habits, search.
 - Attach button / upload: system file picker, with the **camera** offered beside it.
 - Exports (vault zip, Anki deck) go through the system "save as" dialog; other attachments open in their apps.
 - System bars follow the app's light/dark theme; edge-to-edge with the keyboard and the camera cutout respected.

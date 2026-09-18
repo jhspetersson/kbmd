@@ -110,6 +110,37 @@ export interface HabitBoard {
   habits: Habit[];
 }
 
+export interface Task {
+  notePath: string;
+  noteTitle: string;
+  line: number;
+  text: string;
+  done: boolean;
+  due: string | null;
+  tags: string[];
+}
+
+export interface Card {
+  line: number;
+  text: string;
+  /** false for a plain list item without a checkbox */
+  task: boolean;
+  done: boolean;
+  due: string | null;
+}
+
+export interface Column {
+  name: string;
+  line: number;
+  cards: Card[];
+}
+
+export interface Board {
+  path: string;
+  title: string;
+  columns: Column[];
+}
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -172,6 +203,13 @@ export const api = {
   dueCards: (deck: string | null) => request<StudyCard[]>(`/api/flashcards/due${deck ? `?deck=${encodeURIComponent(deck)}` : ''}`),
   review: (id: string, rating: Rating) => request<{ due: string; interval: number }>('/api/flashcards/review', json('POST', { id, rating })),
   ankiExportUrl: (deck: string | null) => `/api/flashcards/export${deck ? `?deck=${encodeURIComponent(deck)}` : ''}`,
+  tasks: () => request<Task[]>('/api/tasks'),
+  addTask: (text: string, path?: string) => request<Task>('/api/tasks', json('POST', { text, path })),
+  toggleTask: (path: string, line: number) => request<{ done: boolean }>('/api/tasks/toggle', json('POST', { path, line })),
+  boards: () => request<Board[]>('/api/kanban'),
+  moveCard: (path: string, line: number, column: string, position: number) =>
+    request<Board>('/api/kanban/move', json('POST', { path, line, column, position })),
+  addCard: (path: string, column: string, text: string) => request<Board>('/api/kanban/card', json('POST', { path, column, text })),
   habits: (days: number) => request<HabitBoard>(`/api/habits?days=${days}`),
   toggleHabit: (id: string, date: string) => request<{ done: boolean }>('/api/habits/toggle', json('POST', { id, date })),
   syncSettings: () => request<SyncSettings>('/api/sync/settings'),

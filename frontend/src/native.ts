@@ -6,7 +6,7 @@ export interface NativeHooks {
   /** The app is going to the background: save now. */
   flush: () => void;
   /** Launcher shortcuts and content shared from other apps. */
-  command: (name: 'open' | 'new-note' | 'daily' | 'search' | 'habits' | 'refresh', argument: string | null) => void;
+  command: (name: 'open' | 'new-note' | 'daily' | 'search' | 'habits' | 'tasks' | 'kanban' | 'refresh', argument: string | null) => void;
 }
 
 declare global {

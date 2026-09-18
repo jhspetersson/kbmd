@@ -63,6 +63,15 @@ The capital of Spain is ==Madrid==.
 Review with spaced repetition from the graduation-cap button in the left ribbon (`Space` shows the answer,
 `1`-`4` rate it), or export a deck for Anki from the same place.
 
+## Tasks and boards
+
+Any `- [ ]` item anywhere in the vault shows up in **Tasks** (the checklist button in the ribbon). Add a due
+date with `📅 2026-09-20` or `due:2026-09-20`, tags with `#tag`; ticking a task there edits the note.
+
+A note tagged `#kanban` is a board: every `## heading` is a column, every list item under it a card. Open it
+from the **Kanban** button, drag cards between columns (or use a card's `⋯` menu on a phone). A card dropped
+into a column called *Done* is checked off.
+
 ## Habits
 
 List the habits you want to keep in any note tagged `#habits`, one per list item:

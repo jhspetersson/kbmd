@@ -106,7 +106,7 @@
   .ribbon button,
   .ribbon-link {
     flex: none;
-    padding: 9px 8px;
+    padding: 8px 5px;
   }
   .ribbon-spacer {
     display: none;
@@ -244,5 +244,25 @@
   }
   .habit-grid td.habit-stats {
     padding-left: 8px;
+  }
+  .tasks,
+  .kanban {
+    padding: 14px 10px 0;
+  }
+  .tasks-tools {
+    flex-wrap: wrap;
+  }
+  .tasks-tools > .text-input {
+    width: 100%;
+  }
+  .kanban-columns {
+    scroll-snap-type: x mandatory;
+  }
+  .kanban-column {
+    flex-basis: 84vw;
+    scroll-snap-align: start;
+  }
+  .kanban-card-menu {
+    opacity: 1;
   }
 }

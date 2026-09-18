@@ -23,6 +23,17 @@
             android:targetClass="dev.kbmd.android.MainActivity" />
     </shortcut>
     <shortcut
+        android:shortcutId="tasks"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_tasks"
+        android:shortcutShortLabel="@string/shortcut_tasks"
+        android:shortcutLongLabel="@string/shortcut_tasks">
+        <intent
+            android:action="dev.kbmd.android.TASKS"
+            android:targetPackage="dev.kbmd.android"
+            android:targetClass="dev.kbmd.android.MainActivity" />
+    </shortcut>
+    <shortcut
         android:shortcutId="daily"
         android:enabled="true"
         android:icon="@drawable/ic_shortcut_daily"

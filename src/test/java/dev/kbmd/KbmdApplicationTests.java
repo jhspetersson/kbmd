@@ -12,6 +12,7 @@ import dev.kbmd.habits.HabitService;
 import dev.kbmd.index.NoteIndex;
 import dev.kbmd.markdown.MarkdownService;
 import dev.kbmd.sync.SyncService;
+import dev.kbmd.tasks.TaskService;
 import dev.kbmd.sync.SyncSettings;
 import dev.kbmd.vault.NoteService;
 import dev.kbmd.vault.VaultService;
@@ -48,6 +49,8 @@ class KbmdApplicationTests {
     FlashcardService flashcards;
     @Autowired
     HabitService habitService;
+    @Autowired
+    TaskService taskService;
     @Autowired
     WebApplicationContext context;
     @Autowired
@@ -210,6 +213,53 @@ class KbmdApplicationTests {
         org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class,
                 () -> habitService.toggle("Exercise", java.time.LocalDate.now().plusDays(1).toString()));
         org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> habitService.toggle("Nope", today));
+    }
+
+    @Test
+    void collectsTasksAndTogglesThemInPlace() {
+        notes.save("tasks/Plan.md", "# Plan\n\n- [ ] Buy seeds 📅 2026-05-01 #garden\n- [x] Order soil\n\n```\n- [ ] not a task\n```\n> - [ ] quoted due:2026-06-01\n");
+
+        List<TaskService.Task> found = taskService.tasks().stream().filter(t -> t.notePath().equals("tasks/Plan.md")).toList();
+        assertThat(found).extracting(TaskService.Task::text).containsExactly("Buy seeds #garden", "Order soil", "quoted");
+        assertThat(found.get(0).due()).isEqualTo("2026-05-01");
+        assertThat(found.get(0).tags()).containsExactly("garden");
+        assertThat(found.get(1).done()).isTrue();
+        assertThat(found.get(2).due()).isEqualTo("2026-06-01");
+
+        assertThat(taskService.toggle("tasks/Plan.md", 3)).isTrue();
+        assertThat(taskService.toggle("tasks/Plan.md", 4)).isFalse();
+        assertThat(vault.read("tasks/Plan.md")).contains("- [x] Buy seeds").contains("- [ ] Order soil");
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> taskService.toggle("tasks/Plan.md", 1));
+
+        TaskService.Task added = taskService.add("Call the nursery", null);
+        assertThat(added.notePath()).isEqualTo("Tasks.md");
+        assertThat(vault.read("Tasks.md")).isEqualTo("# Tasks\n- [ ] Call the nursery\n");
+        assertThat(taskService.add("Second", null).line()).isEqualTo(3);
+    }
+
+    @Test
+    void kanbanBoardsAreEditedThroughTheNote() {
+        notes.save("boards/Project.md", "#kanban\n\n## To do\n\n- [ ] Write spec\n  with a detail line\n- [ ] Review\n\n## Doing\n\n## Done\n\n- [x] Kick-off\n");
+
+        TaskService.Board board = taskService.boards().get(0);
+        assertThat(board.columns()).extracting(TaskService.Column::name).containsExactly("To do", "Doing", "Done");
+        assertThat(board.columns().get(0).cards()).extracting(TaskService.Card::text).containsExactly("Write spec", "Review");
+
+        // into the empty middle column: the detail line travels with the card
+        board = taskService.move("boards/Project.md", 5, "Doing", 0);
+        assertThat(board.columns().get(1).cards()).extracting(TaskService.Card::text).containsExactly("Write spec");
+        assertThat(vault.read("boards/Project.md")).isEqualTo("#kanban\n\n## To do\n\n- [ ] Review\n\n## Doing\n\n- [ ] Write spec\n  with a detail line\n\n## Done\n\n- [x] Kick-off\n");
+
+        // into Done: checked off; back out again: unchecked, placed first
+        board = taskService.move("boards/Project.md", 5, "Done", 99);
+        assertThat(board.columns().get(2).cards()).extracting(TaskService.Card::text).containsExactly("Kick-off", "Review");
+        assertThat(board.columns().get(2).cards().get(1).done()).isTrue();
+        board = taskService.move("boards/Project.md", board.columns().get(2).cards().get(1).line(), "To do", 0);
+        assertThat(board.columns().get(0).cards().get(0).done()).isFalse();
+
+        board = taskService.addCard("boards/Project.md", "Doing", "Ship it");
+        assertThat(board.columns().get(1).cards()).extracting(TaskService.Card::text).containsExactly("Write spec", "Ship it");
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> taskService.move("boards/Project.md", 1, "Doing", 0));
     }
 
     @Test

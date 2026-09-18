@@ -62,6 +62,7 @@ public class MainActivity extends Activity {
     public static final String ACTION_DAILY = "dev.kbmd.android.DAILY";
     public static final String ACTION_SEARCH = "dev.kbmd.android.SEARCH";
     public static final String ACTION_HABITS = "dev.kbmd.android.HABITS";
+    public static final String ACTION_TASKS = "dev.kbmd.android.TASKS";
 
     private static final String FILES_AUTHORITY = "dev.kbmd.android.files";
     private static final int REQUEST_PICK_FILES = 1;
@@ -321,6 +322,9 @@ public class MainActivity extends Activity {
                 break;
             case ACTION_HABITS:
                 command("habits", null);
+                break;
+            case ACTION_TASKS:
+                command("tasks", null);
                 break;
             case ACTION_NEW_DRAWING:
                 inBackend(backend -> {

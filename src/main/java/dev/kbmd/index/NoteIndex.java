@@ -283,6 +283,14 @@ public class NoteIndex implements LinkResolver {
         return new Graph(List.copyOf(nodes.values()), List.copyOf(edges));
     }
 
+    /** Every note with its content, in path order. */
+    public List<TaggedNote> allNotes() {
+        return notes.values().stream()
+                .sorted(Comparator.comparing(Entry::path))
+                .map(e -> new TaggedNote(e.path(), e.title(), e.content(), List.copyOf(e.parsed().tags())))
+                .toList();
+    }
+
     /** Notes carrying {@code tag} or one of its nested tags ({@code tag/child}). */
     public List<TaggedNote> notesTagged(String tag) {
         List<TaggedNote> tagged = new ArrayList<>();

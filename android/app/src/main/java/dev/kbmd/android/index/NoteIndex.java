@@ -214,6 +214,14 @@ public class NoteIndex implements LinkResolver {
         return new Graph(new ArrayList<>(nodes.values()), new ArrayList<>(edges));
     }
 
+    /** Every note with its content, in path order. */
+    public List<TaggedNote> allNotes() {
+        return notes.values().stream()
+                .sorted(Comparator.comparing((Entry e) -> e.path))
+                .map(e -> new TaggedNote(e.path, e.title, e.content, new ArrayList<>(e.parsed.tags)))
+                .collect(Collectors.toList());
+    }
+
     /** Notes carrying {@code tag} or one of its nested tags ({@code tag/child}). */
     public List<TaggedNote> notesTagged(String tag) {
         List<TaggedNote> tagged = new ArrayList<>();

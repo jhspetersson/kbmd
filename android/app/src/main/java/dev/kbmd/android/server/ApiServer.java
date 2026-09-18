@@ -21,6 +21,7 @@ import java.util.Map;
 import dev.kbmd.android.flashcards.FlashcardService;
 import dev.kbmd.android.index.NoteIndex;
 import dev.kbmd.android.sync.SyncSettings;
+import dev.kbmd.android.tasks.TaskService;
 import dev.kbmd.android.vault.VaultService;
 import fi.iki.elonen.NanoHTTPD;
 import org.json.JSONArray;
@@ -227,6 +228,37 @@ public class ApiServer extends NanoHTTPD {
                 response.addHeader("Content-Disposition", "attachment; filename=\"" + name + "\"");
                 return response;
             }
+            case "GET /tasks": {
+                JSONArray tasks = new JSONArray();
+                for (TaskService.Task task : backend.tasks.tasks()) {
+                    tasks.put(task(task));
+                }
+                return json(200, tasks);
+            }
+            case "POST /tasks": {
+                JSONObject request = jsonBody(body);
+                return json(200, task(backend.tasks.add(requiredText(request, "text"), request.isNull("path") ? null : request.getString("path"))));
+            }
+            case "POST /tasks/toggle": {
+                JSONObject request = jsonBody(body);
+                return json(200, new JSONObject().put("done", backend.tasks.toggle(requiredText(request, "path"), request.getInt("line"))));
+            }
+            case "GET /kanban": {
+                JSONArray boards = new JSONArray();
+                for (TaskService.Board board : backend.tasks.boards()) {
+                    boards.put(board(board));
+                }
+                return json(200, boards);
+            }
+            case "POST /kanban/move": {
+                JSONObject request = jsonBody(body);
+                return json(200, board(backend.tasks.move(requiredText(request, "path"), request.getInt("line"),
+                        requiredText(request, "column"), request.optInt("position", Integer.MAX_VALUE))));
+            }
+            case "POST /kanban/card": {
+                JSONObject request = jsonBody(body);
+                return json(200, board(backend.tasks.addCard(requiredText(request, "path"), requiredText(request, "column"), requiredText(request, "text"))));
+            }
             case "GET /habits": {
                 String days = optionalParam(session, "days");
                 int span = 14;
@@ -262,6 +294,25 @@ public class ApiServer extends NanoHTTPD {
                 .put("title", NoteIndex.title(path))
                 .put("content", withContent ? backend.vault.read(path) : JSONObject.NULL)
                 .put("modified", backend.vault.lastModified(path));
+    }
+
+    private static JSONObject task(TaskService.Task task) throws JSONException {
+        return new JSONObject().put("notePath", task.notePath).put("noteTitle", task.noteTitle).put("line", task.line)
+                .put("text", task.text).put("done", task.done).put("due", task.due == null ? JSONObject.NULL : task.due)
+                .put("tags", new JSONArray(task.tags));
+    }
+
+    private static JSONObject board(TaskService.Board board) throws JSONException {
+        JSONArray columns = new JSONArray();
+        for (TaskService.Column column : board.columns) {
+            JSONArray cards = new JSONArray();
+            for (TaskService.Card card : column.cards) {
+                cards.put(new JSONObject().put("line", card.line).put("text", card.text).put("task", card.task)
+                        .put("done", card.done).put("due", card.due == null ? JSONObject.NULL : card.due));
+            }
+            columns.put(new JSONObject().put("name", column.name).put("line", column.line).put("cards", cards));
+        }
+        return new JSONObject().put("path", board.path).put("title", board.title).put("columns", columns);
     }
 
     private static JSONObject tree(VaultService.TreeNode node) throws JSONException {

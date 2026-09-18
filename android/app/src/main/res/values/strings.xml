@@ -10,5 +10,6 @@
     <string name="shortcut_daily_long">Today\'s daily note</string>
     <string name="shortcut_search">Search</string>
     <string name="shortcut_habits">Habits</string>
+    <string name="shortcut_tasks">Tasks</string>
     <string name="shortcut_habits_long">Check off today\'s habits</string>
 </resources>

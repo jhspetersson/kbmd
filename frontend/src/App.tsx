@@ -9,6 +9,7 @@ import {
   GraduationCap,
   Files,
   Hash,
+  ListTodo,
   Moon,
   PanelRight,
   PenTool,
@@ -16,6 +17,7 @@ import {
   RefreshCw,
   Repeat,
   Search,
+  SquareKanban,
   Sun,
   Upload,
   Waypoints,
@@ -41,6 +43,8 @@ import { FlashcardsView } from './components/FlashcardsView';
 import { FileTree, type TreeAction } from './components/FileTree';
 import { GraphView } from './components/GraphView';
 import { HabitsView } from './components/HabitsView';
+import { KanbanView } from './components/KanbanView';
+import { TasksView } from './components/TasksView';
 import { NoteView, type ViewMode } from './components/NoteView';
 import { ContextPanel, SearchPanel, TagsPanel } from './components/Panels';
 import { SyncDialog } from './components/SyncDialog';
@@ -51,7 +55,15 @@ const DrawingEditor = lazy(() => import('./components/DrawingEditor').then((modu
 const GRAPH_TAB = '::graph';
 const CARDS_TAB = '::cards';
 const HABITS_TAB = '::habits';
-const SPECIAL_TABS: Record<string, string> = { [GRAPH_TAB]: 'Graph view', [CARDS_TAB]: 'Flashcards', [HABITS_TAB]: 'Habits' };
+const TASKS_TAB = '::tasks';
+const KANBAN_TAB = '::kanban';
+const SPECIAL_TABS: Record<string, string> = {
+  [GRAPH_TAB]: 'Graph view',
+  [CARDS_TAB]: 'Flashcards',
+  [HABITS_TAB]: 'Habits',
+  [TASKS_TAB]: 'Tasks',
+  [KANBAN_TAB]: 'Kanban',
+};
 const isFile = (tab: string | null): tab is string => tab !== null && !(tab in SPECIAL_TABS);
 const MODES: ViewMode[] = ['split', 'edit', 'preview'];
 type LeftPanel = 'files' | 'search' | 'tags';
@@ -381,6 +393,8 @@ export function App() {
         else if (name === 'daily') void openDaily();
         else if (name === 'search') setLeftPanel('search');
         else if (name === 'habits') openPath(HABITS_TAB);
+        else if (name === 'tasks') openPath(TASKS_TAB);
+        else if (name === 'kanban') openPath(KANBAN_TAB);
         else if (name === 'refresh') {
           void refresh().catch(() => undefined);
           refreshSyncStatus();
@@ -441,7 +455,19 @@ export function App() {
   // ------------------------------------------------------------------ render
 
   const activeType =
-    active === null ? null : active === GRAPH_TAB ? 'graph' : active === CARDS_TAB ? 'cards' : active === HABITS_TAB ? 'habits' : entryType(active);
+    active === null
+      ? null
+      : active === GRAPH_TAB
+        ? 'graph'
+        : active === CARDS_TAB
+          ? 'cards'
+          : active === HABITS_TAB
+            ? 'habits'
+            : active === TASKS_TAB
+              ? 'tasks'
+              : active === KANBAN_TAB
+                ? 'kanban'
+                : entryType(active);
   const togglePanel = (panel: LeftPanel) => setLeftPanel((current) => (current === panel ? null : panel));
   const words = content.trim() ? content.trim().split(/\s+/).length : 0;
   const pending = syncStatus?.pendingChanges ?? -1;
@@ -460,6 +486,25 @@ export function App() {
     main = <GraphView activePath={null} revision={revision} onOpen={openPath} onCreate={(target) => void createNote('', target)} />;
   } else if (active && activeType === 'cards') {
     main = <FlashcardsView revision={revision} onOpen={openPath} onError={fail} />;
+  } else if (active && activeType === 'tasks') {
+    // ticking a task edits its note, which an open editor tab must pick up
+    main = <TasksView revision={revision} onOpen={openPath} onError={fail} onChanged={() => setReloadToken((t) => t + 1)} />;
+  } else if (active && activeType === 'kanban') {
+    main = (
+      <KanbanView
+        revision={revision}
+        onOpen={openPath}
+        onError={fail}
+        onChanged={() => setReloadToken((t) => t + 1)}
+        onCreate={(path, content) =>
+          void guarded(async () => {
+            await api.create(path, content);
+            await refresh();
+            openPath(path);
+          })
+        }
+      />
+    );
   } else if (active && activeType === 'habits') {
     main = (
       <HabitsView
@@ -527,6 +572,8 @@ export function App() {
         <button className={leftPanel === 'tags' ? 'on' : ''} title="Tags" onClick={() => togglePanel('tags')}><Hash size={19} /></button>
         <button className={active === GRAPH_TAB ? 'on' : ''} title="Graph view" onClick={() => openPath(GRAPH_TAB)}><Waypoints size={19} /></button>
         <button className={active === CARDS_TAB ? 'on' : ''} title="Flashcards" onClick={() => openPath(CARDS_TAB)}><GraduationCap size={19} /></button>
+        <button className={active === TASKS_TAB ? 'on' : ''} title="Tasks" onClick={() => openPath(TASKS_TAB)}><ListTodo size={19} /></button>
+        <button className={active === KANBAN_TAB ? 'on' : ''} title="Kanban" onClick={() => openPath(KANBAN_TAB)}><SquareKanban size={19} /></button>
         <button className={active === HABITS_TAB ? 'on' : ''} title="Habits" onClick={() => openPath(HABITS_TAB)}><Repeat size={19} /></button>
         <button title="Quick switcher (Ctrl+O)" onClick={() => setSwitcherOpen(true)}><Zap size={19} /></button>
         <button title="Today's daily note" onClick={() => void openDaily()}><CalendarDays size={19} /></button>

@@ -8,6 +8,7 @@ import dev.kbmd.android.habits.HabitService;
 import dev.kbmd.android.index.NoteIndex;
 import dev.kbmd.android.markdown.MarkdownService;
 import dev.kbmd.android.sync.SyncService;
+import dev.kbmd.android.tasks.TaskService;
 import dev.kbmd.android.vault.NoteService;
 import dev.kbmd.android.vault.VaultService;
 
@@ -20,6 +21,7 @@ public final class Backend {
     public final NoteService notes;
     public final FlashcardService flashcards;
     public final HabitService habits;
+    public final TaskService tasks;
     public final SyncService sync;
 
     /**
@@ -33,6 +35,7 @@ public final class Backend {
         notes = new NoteService(vault, index);
         flashcards = new FlashcardService(vault, index, markdown);
         habits = new HabitService(vault, index);
+        tasks = new TaskService(vault, notes, index);
         sync = new SyncService(vault, index, privateDir);
     }
 }
