@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 import dev.kbmd.flashcards.FlashcardService;
+import dev.kbmd.habits.HabitService;
 import dev.kbmd.index.NoteIndex;
 import dev.kbmd.markdown.MarkdownService;
 import dev.kbmd.sync.SyncService;
@@ -45,6 +46,8 @@ class KbmdApplicationTests {
     SyncService sync;
     @Autowired
     FlashcardService flashcards;
+    @Autowired
+    HabitService habitService;
     @Autowired
     WebApplicationContext context;
     @Autowired
@@ -170,6 +173,43 @@ class KbmdApplicationTests {
         assertThat(flashcards.review(due.get(1).id(), FlashcardService.Rating.AGAIN).interval()).isZero();
         assertThat(flashcards.due("spanish")).hasSize(5);
         assertThat(flashcards.exportForAnki("spanish", "http://localhost:8787")).contains("#deck column:3").contains("\tspanish\t");
+    }
+
+    @Test
+    void tracksHabitsFromTaggedNotes() {
+        notes.save("habits/Routine.md", """
+                #habits
+
+                - Exercise
+                - [ ] Read 20 pages (3x/week)
+                - **Meditate** (daily)
+                - #habits
+                ```
+                - not a habit
+                ```
+                """);
+
+        HabitService.Board board = habitService.board(7);
+        assertThat(board.days()).hasSize(7).last().isEqualTo(java.time.LocalDate.now().toString());
+        assertThat(board.habits()).extracting(HabitService.HabitView::name).containsExactly("Exercise", "Read 20 pages", "Meditate");
+        assertThat(board.habits().get(1).weeklyTarget()).isEqualTo(3);
+        assertThat(board.habits().get(2).weeklyTarget()).isEqualTo(7);
+
+        String today = java.time.LocalDate.now().toString();
+        String yesterday = java.time.LocalDate.now().minusDays(1).toString();
+        assertThat(habitService.toggle("Exercise", yesterday)).isTrue();
+        assertThat(habitService.toggle("Exercise", today)).isTrue();
+        HabitService.HabitView exercise = habitService.board(7).habits().get(0);
+        assertThat(exercise.done()).containsExactly(yesterday, today);
+        assertThat(exercise.streak()).isEqualTo(2);
+        assertThat(exercise.total()).isEqualTo(2);
+        assertThat(habitService.toggle("Exercise", today)).isFalse();
+        assertThat(habitService.board(7).habits().get(0).streak()).isEqualTo(1);
+        assertThat(vault.root().resolve(".habits.json")).content().contains("\"Exercise\" : [ \"" + yesterday + "\" ]");
+
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class,
+                () -> habitService.toggle("Exercise", java.time.LocalDate.now().plusDays(1).toString()));
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> habitService.toggle("Nope", today));
     }
 
     @Test

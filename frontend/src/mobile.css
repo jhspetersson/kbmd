@@ -219,4 +219,30 @@
   .deck-table td {
     padding: 8px 5px;
   }
+  .habits {
+    padding: 14px 10px;
+  }
+  .habit-grid td.habit-name,
+  .habit-grid th.habit-name {
+    min-width: 96px;
+    max-width: 130px;
+    padding-right: 8px;
+    font-size: 13px;
+  }
+  .habit-check {
+    width: 34px;
+    height: 34px;
+  }
+  /* streak and week only; the rate needs the wider screen */
+  .habit-grid td.habit-stats > span:last-child,
+  .habit-grid th.habit-stats {
+    font-size: 0;
+  }
+  .habit-grid td.habit-stats > span {
+    min-width: 0;
+    margin-right: 8px;
+  }
+  .habit-grid td.habit-stats {
+    padding-left: 8px;
+  }
 }

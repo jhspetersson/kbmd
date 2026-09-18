@@ -34,6 +34,17 @@
             android:targetClass="dev.kbmd.android.MainActivity" />
     </shortcut>
     <shortcut
+        android:shortcutId="habits"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_habits"
+        android:shortcutShortLabel="@string/shortcut_habits"
+        android:shortcutLongLabel="@string/shortcut_habits_long">
+        <intent
+            android:action="dev.kbmd.android.HABITS"
+            android:targetPackage="dev.kbmd.android"
+            android:targetClass="dev.kbmd.android.MainActivity" />
+    </shortcut>
+    <shortcut
         android:shortcutId="search"
         android:enabled="true"
         android:icon="@drawable/ic_shortcut_search"

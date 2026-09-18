@@ -227,6 +227,20 @@ public class ApiServer extends NanoHTTPD {
                 response.addHeader("Content-Disposition", "attachment; filename=\"" + name + "\"");
                 return response;
             }
+            case "GET /habits": {
+                String days = optionalParam(session, "days");
+                int span = 14;
+                try {
+                    span = days == null ? 14 : Integer.parseInt(days.trim());
+                } catch (NumberFormatException e) {
+                    throw HttpError.badRequest("Bad number of days");
+                }
+                return json(200, backend.habits.board(span));
+            }
+            case "POST /habits/toggle": {
+                JSONObject request = jsonBody(body);
+                return json(200, new JSONObject().put("done", backend.habits.toggle(requiredText(request, "id"), requiredText(request, "date"))));
+            }
             case "GET /sync/settings":
                 return json(200, backend.sync.settings().toJson(false));
             case "PUT /sync/settings":

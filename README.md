@@ -16,6 +16,8 @@ the app is a Spring Boot server with a React UI, shipped as a single jar or Dock
 - **Flashcards (Anki-style)** – notes tagged `#flashcards` or `#flashcards/deck` become decks: `Q::A`, `A:::B`
   (both directions), multi-line cards split by a `?` line, `==cloze==`. Spaced-repetition review (SM-2, Again / Hard /
   Good / Easy), progress kept in `<vault>/.flashcards.json` (synced with Git), export to Anki's text import format
+- **Habit tracker** – list habits in a note tagged `#habits` (`- Gym (3x/week)` sets a weekly target), check days off
+  in the Habits tab; streaks and weekly counts, history kept in `<vault>/.habits.json` (synced)
 - **Sync with GitHub / GitLab** – two-way Git sync over HTTPS using an access token, manual or on a timer
 - **Export** – the whole vault as a zip
 

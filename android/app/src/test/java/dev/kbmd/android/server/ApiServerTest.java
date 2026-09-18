@@ -238,6 +238,26 @@ public class ApiServerTest {
     }
 
     @Test
+    public void tracksHabitsLikeTheWebApp() throws Exception {
+        json("POST", "/api/notes", new JSONObject().put("path", "Habits.md").put("content", "#habits\n\n- Exercise\n- Read (3x/week)\n"));
+        JSONObject board = call("GET", "/api/habits?days=7", null, null).json();
+        assertEquals(7, board.getJSONArray("days").length());
+        JSONArray habits = board.getJSONArray("habits");
+        assertEquals("Exercise", habits.getJSONObject(0).getString("name"));
+        assertEquals(3, habits.getJSONObject(1).getInt("weeklyTarget"));
+
+        String today = java.time.LocalDate.now().toString();
+        assertTrue(json("POST", "/api/habits/toggle", new JSONObject().put("id", "Exercise").put("date", today)).json().getBoolean("done"));
+        JSONObject exercise = call("GET", "/api/habits?days=7", null, null).json().getJSONArray("habits").getJSONObject(0);
+        assertEquals(1, exercise.getInt("streak"));
+        assertEquals(today, exercise.getJSONArray("done").getString(0));
+        String stored = new String(Files.readAllBytes(vault.resolve(".habits.json")), StandardCharsets.UTF_8);
+        assertEquals("{\n  \"Exercise\" : [ \"" + today + "\" ]\n}", stored);
+        assertEquals(400, json("POST", "/api/habits/toggle", new JSONObject().put("id", "Exercise").put("date", "2999-01-01")).status);
+        assertEquals(404, json("POST", "/api/habits/toggle", new JSONObject().put("id", "Nope").put("date", today)).status);
+    }
+
+    @Test
     public void syncSettingsNeverReturnTheToken() throws Exception {
         JSONObject saved = json("PUT", "/api/sync/settings", new JSONObject().put("provider", "gitlab").put("remoteUrl", "me/notes")
                 .put("token", "glpat-secret").put("branch", "").put("autoSyncMinutes", 15)).json();

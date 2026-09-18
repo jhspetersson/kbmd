@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 import dev.kbmd.android.flashcards.FlashcardService;
+import dev.kbmd.android.habits.HabitService;
 import dev.kbmd.android.index.NoteIndex;
 import dev.kbmd.android.markdown.MarkdownService;
 import dev.kbmd.android.sync.SyncService;
@@ -18,6 +19,7 @@ public final class Backend {
     public final NoteIndex index;
     public final NoteService notes;
     public final FlashcardService flashcards;
+    public final HabitService habits;
     public final SyncService sync;
 
     /**
@@ -30,6 +32,7 @@ public final class Backend {
         index = new NoteIndex(vault, markdown);
         notes = new NoteService(vault, index);
         flashcards = new FlashcardService(vault, index, markdown);
+        habits = new HabitService(vault, index);
         sync = new SyncService(vault, index, privateDir);
     }
 }

@@ -63,6 +63,22 @@ The capital of Spain is ==Madrid==.
 Review with spaced repetition from the graduation-cap button in the left ribbon (`Space` shows the answer,
 `1`-`4` rate it), or export a deck for Anki from the same place.
 
+## Habits
+
+List the habits you want to keep in any note tagged `#habits`, one per list item:
+
+````
+#habits
+
+- Exercise
+- Read 20 pages (3x/week)
+- Meditate
+````
+
+`(3x/week)` sets a weekly target; a habit without one is daily. Open **Habits** (the repeat button in the
+ribbon) to check days off, see streaks and this week's count. Check-ins are kept in `.habits.json` in the vault,
+so they sync with your notes.
+
 ## Everything else
 
 - [ ] Try the quick switcher: `Ctrl+O`

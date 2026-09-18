@@ -14,6 +14,7 @@ import {
   PenTool,
   Pencil,
   RefreshCw,
+  Repeat,
   Search,
   Sun,
   Upload,
@@ -39,6 +40,7 @@ import { Lightbox, PromptDialog, QuickSwitcher, type PromptRequest } from './com
 import { FlashcardsView } from './components/FlashcardsView';
 import { FileTree, type TreeAction } from './components/FileTree';
 import { GraphView } from './components/GraphView';
+import { HabitsView } from './components/HabitsView';
 import { NoteView, type ViewMode } from './components/NoteView';
 import { ContextPanel, SearchPanel, TagsPanel } from './components/Panels';
 import { SyncDialog } from './components/SyncDialog';
@@ -48,7 +50,8 @@ const DrawingEditor = lazy(() => import('./components/DrawingEditor').then((modu
 
 const GRAPH_TAB = '::graph';
 const CARDS_TAB = '::cards';
-const SPECIAL_TABS: Record<string, string> = { [GRAPH_TAB]: 'Graph view', [CARDS_TAB]: 'Flashcards' };
+const HABITS_TAB = '::habits';
+const SPECIAL_TABS: Record<string, string> = { [GRAPH_TAB]: 'Graph view', [CARDS_TAB]: 'Flashcards', [HABITS_TAB]: 'Habits' };
 const isFile = (tab: string | null): tab is string => tab !== null && !(tab in SPECIAL_TABS);
 const MODES: ViewMode[] = ['split', 'edit', 'preview'];
 type LeftPanel = 'files' | 'search' | 'tags';
@@ -377,6 +380,7 @@ export function App() {
         else if (name === 'new-note') void createNote('');
         else if (name === 'daily') void openDaily();
         else if (name === 'search') setLeftPanel('search');
+        else if (name === 'habits') openPath(HABITS_TAB);
         else if (name === 'refresh') {
           void refresh().catch(() => undefined);
           refreshSyncStatus();
@@ -436,7 +440,8 @@ export function App() {
 
   // ------------------------------------------------------------------ render
 
-  const activeType = active === null ? null : active === GRAPH_TAB ? 'graph' : active === CARDS_TAB ? 'cards' : entryType(active);
+  const activeType =
+    active === null ? null : active === GRAPH_TAB ? 'graph' : active === CARDS_TAB ? 'cards' : active === HABITS_TAB ? 'habits' : entryType(active);
   const togglePanel = (panel: LeftPanel) => setLeftPanel((current) => (current === panel ? null : panel));
   const words = content.trim() ? content.trim().split(/\s+/).length : 0;
   const pending = syncStatus?.pendingChanges ?? -1;
@@ -455,6 +460,21 @@ export function App() {
     main = <GraphView activePath={null} revision={revision} onOpen={openPath} onCreate={(target) => void createNote('', target)} />;
   } else if (active && activeType === 'cards') {
     main = <FlashcardsView revision={revision} onOpen={openPath} onError={fail} />;
+  } else if (active && activeType === 'habits') {
+    main = (
+      <HabitsView
+        revision={revision}
+        onOpen={openPath}
+        onError={fail}
+        onCreate={(path, content) =>
+          void guarded(async () => {
+            await api.create(path, content);
+            await refresh();
+            openPath(path);
+          })
+        }
+      />
+    );
   } else if (active && activeType === 'note') {
     main = (
       <NoteView
@@ -507,6 +527,7 @@ export function App() {
         <button className={leftPanel === 'tags' ? 'on' : ''} title="Tags" onClick={() => togglePanel('tags')}><Hash size={19} /></button>
         <button className={active === GRAPH_TAB ? 'on' : ''} title="Graph view" onClick={() => openPath(GRAPH_TAB)}><Waypoints size={19} /></button>
         <button className={active === CARDS_TAB ? 'on' : ''} title="Flashcards" onClick={() => openPath(CARDS_TAB)}><GraduationCap size={19} /></button>
+        <button className={active === HABITS_TAB ? 'on' : ''} title="Habits" onClick={() => openPath(HABITS_TAB)}><Repeat size={19} /></button>
         <button title="Quick switcher (Ctrl+O)" onClick={() => setSwitcherOpen(true)}><Zap size={19} /></button>
         <button title="Today's daily note" onClick={() => void openDaily()}><CalendarDays size={19} /></button>
         <span className="ribbon-spacer" />

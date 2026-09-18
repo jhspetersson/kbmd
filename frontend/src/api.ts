@@ -91,6 +91,25 @@ export interface StudyCard {
   intervals: Record<Rating, number>;
 }
 
+export interface Habit {
+  id: string;
+  name: string;
+  notePath: string;
+  line: number;
+  /** 7 for a daily habit */
+  weeklyTarget: number;
+  /** checked dates within the board's days */
+  done: string[];
+  streak: number;
+  week: number;
+  total: number;
+}
+
+export interface HabitBoard {
+  days: string[];
+  habits: Habit[];
+}
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -153,6 +172,8 @@ export const api = {
   dueCards: (deck: string | null) => request<StudyCard[]>(`/api/flashcards/due${deck ? `?deck=${encodeURIComponent(deck)}` : ''}`),
   review: (id: string, rating: Rating) => request<{ due: string; interval: number }>('/api/flashcards/review', json('POST', { id, rating })),
   ankiExportUrl: (deck: string | null) => `/api/flashcards/export${deck ? `?deck=${encodeURIComponent(deck)}` : ''}`,
+  habits: (days: number) => request<HabitBoard>(`/api/habits?days=${days}`),
+  toggleHabit: (id: string, date: string) => request<{ done: boolean }>('/api/habits/toggle', json('POST', { id, date })),
   syncSettings: () => request<SyncSettings>('/api/sync/settings'),
   saveSyncSettings: (settings: SyncSettings) => request<SyncSettings>('/api/sync/settings', json('PUT', settings)),
   syncStatus: () => request<SyncStatus>('/api/sync/status'),
