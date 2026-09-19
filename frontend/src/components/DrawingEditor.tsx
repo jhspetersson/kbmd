@@ -1,8 +1,10 @@
 import '@excalidraw/excalidraw/index.css';
+import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { api, ApiError } from '../api';
 import { loadExcalidraw, parseDrawing, type DrawingFile } from '../drawing';
 import { isNative } from '../native';
+import { DrawingPalette, type StrokeStyle } from './DrawingPalette';
 
 const Excalidraw = lazy(() => loadExcalidraw().then((module) => ({ default: module.Excalidraw })));
 
@@ -22,6 +24,8 @@ export function DrawingEditor({ path, dark, onStatus, registerFlush }: Props) {
   const lastVersion = useRef(-1);
   const timer = useRef<number | undefined>(undefined);
   const flushRef = useRef<(() => Promise<void>) | null>(null);
+  const [excalidraw, setExcalidraw] = useState<ExcalidrawImperativeAPI | null>(null);
+  const [stroke, setStroke] = useState<StrokeStyle>({ color: '#1e1e1e', width: 2 });
 
   useEffect(() => {
     let cancelled = false;
@@ -69,6 +73,7 @@ export function DrawingEditor({ path, dark, onStatus, registerFlush }: Props) {
     <div className="drawing-editor">
       <Suspense fallback={<div className="empty-state">Loading drawing tools…</div>}>
         <Excalidraw
+          excalidrawAPI={setExcalidraw}
           theme={dark ? 'dark' : 'light'}
           initialData={{
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -87,6 +92,16 @@ export function DrawingEditor({ path, dark, onStatus, registerFlush }: Props) {
             files: initial.files as any,
           }}
           onChange={(elements, appState, files) => {
+            // the palette shows the selection's stroke, or the one the next element gets
+            const selected = elements.filter((element) => appState.selectedElementIds[element.id] && !element.isDeleted);
+            const color = selected.length > 0 && selected.every((element) => element.strokeColor === selected[0].strokeColor)
+              ? selected[0].strokeColor
+              : appState.currentItemStrokeColor;
+            const width = selected.length > 0 && selected.every((element) => element.strokeWidth === selected[0].strokeWidth)
+              ? selected[0].strokeWidth
+              : appState.currentItemStrokeWidth;
+            setStroke((previous) => (previous.color === color && previous.width === width ? previous : { color, width }));
+
             // onChange also fires for pointer moves; only a changed scene needs saving
             const version = elements.reduce((sum, element) => sum + element.version, 0) + Object.keys(files).length;
             if (lastVersion.current === -1) {
@@ -104,6 +119,7 @@ export function DrawingEditor({ path, dark, onStatus, registerFlush }: Props) {
           }}
         />
       </Suspense>
+      <DrawingPalette api={excalidraw} dark={dark} current={stroke} />
     </div>
   );
 }

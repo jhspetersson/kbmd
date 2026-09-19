@@ -7,6 +7,15 @@
 /* ------------------------------------------------------------ finger-sized targets */
 
 @media (pointer: coarse) {
+  /* the drawing palette: finger-sized swatches */
+  .palette-colors,
+  .palette-widths {
+    grid-template-columns: repeat(2, 28px);
+  }
+  .drawing-palette button {
+    width: 28px;
+    height: 28px;
+  }
   .ribbon button,
   .ribbon-link,
   .sidebar-actions button,

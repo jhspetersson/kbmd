@@ -543,6 +543,68 @@ mark {
 .drawing-editor {
   flex: 1;
   min-height: 0;
+  position: relative;
+}
+
+/* extra stroke colours and widths, floating at the right edge of the canvas */
+.drawing-palette {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px;
+  max-height: calc(100% - 140px);
+  overflow-y: auto;
+  scrollbar-width: none;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px var(--shadow);
+}
+.drawing-palette::-webkit-scrollbar {
+  display: none;
+}
+.palette-colors,
+.palette-widths {
+  display: grid;
+  grid-template-columns: repeat(2, 22px);
+  gap: 5px;
+}
+.palette-widths {
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.drawing-palette button {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: none;
+  cursor: pointer;
+}
+.drawing-palette button.active {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+/* Excalidraw inverts the canvas in dark mode; the swatches follow, so they show what the ink will look like */
+.drawing-palette.dark .swatch {
+  filter: invert(93%) hue-rotate(180deg);
+}
+.drawing-palette .stroke-width {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.drawing-palette .stroke-width span {
+  display: block;
+  width: 14px;
+  border-radius: 7px;
+  background: var(--text);
 }
 
 /* ------------------------------------------------------------ rendered markdown */
