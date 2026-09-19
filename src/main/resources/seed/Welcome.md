@@ -86,9 +86,11 @@ Events are list items in a note tagged `#calendar`, each starting with a date or
 - every month 1 Rent
 - every year 03-14 Pi day
 - birthday 1990-03-14 Mom
+- birthday 15 May Mary
 ````
 
 `every day`, `every weekdays`, `every month last`, a time range like `14:30-15:00`, and `until 2026-12-31` work too.
+A birthday without the year (no age shown) takes `05-15`, `15.05`, `15 May`, `May 15`, `May, 15` or `15.May`.
 The **Calendar** tab shows them with daily notes and due tasks, adds events for you, and exports an `.ics` file.
 
 ## Habits

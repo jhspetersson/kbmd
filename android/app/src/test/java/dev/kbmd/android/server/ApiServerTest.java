@@ -300,6 +300,25 @@ public class ApiServerTest {
     }
 
     @Test
+    public void calendarAcceptsBirthdaysWithoutAYear() throws Exception {
+        json("POST", "/api/notes", new JSONObject().put("path", "Birthdays.md").put("content",
+                "#calendar\n\n- birthday 05-15 Mary\n- birthday 15.05 Mark\n- birthday 15 May Mia\n- birthday May 15 Max\n"
+                        + "- birthday May, 15 Moe\n- birthday 15.May Meg\n- birthday 15.05.1990 Dated\n- birthday May Nobody\n"));
+        JSONArray may = new JSONArray(call("GET", "/api/calendar?from=2027-05-01&to=2027-05-31", null, null).text());
+        java.util.List<String> titles = new java.util.ArrayList<>();
+        for (int i = 0; i < may.length(); i++) {
+            JSONObject o = may.getJSONObject(i);
+            assertEquals("2027-05-15", o.getString("date"));
+            assertEquals("birthday", o.getString("kind"));
+            assertEquals("FREQ=YEARLY;BYMONTH=5;BYMONTHDAY=15", o.getString("rrule"));
+            assertEquals(o.getString("title"), o.getString("title").equals("Dated") ? "37" : null, o.optString("detail", null));
+            titles.add(o.getString("title"));
+        }
+        java.util.Collections.sort(titles);
+        assertEquals(java.util.Arrays.asList("Dated", "Mark", "Mary", "Max", "Meg", "Mia", "Moe"), titles);
+    }
+
+    @Test
     public void syncSettingsNeverReturnTheToken() throws Exception {
         JSONObject saved = json("PUT", "/api/sync/settings", new JSONObject().put("provider", "gitlab").put("remoteUrl", "me/notes")
                 .put("token", "glpat-secret").put("branch", "").put("autoSyncMinutes", 15)).json();

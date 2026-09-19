@@ -317,6 +317,38 @@ class KbmdApplicationTests {
     }
 
     @Test
+    void calendarAcceptsBirthdaysWithoutAYear() {
+        notes.save("cal/Birthdays.md", """
+                #calendar
+
+                - birthday 05-15 Mary
+                - birthday 15.05 Mark
+                - birthday 15 May Mia
+                - birthday May 15 Max
+                - birthday May, 15 Moe
+                - birthday 15.May Meg
+                - birthday 15. May 10:00 Mel
+                - birthday 29.02 Leap
+                - birthday 15.05.1990 Dated
+                - birthday May Nobody
+                - birthday 32.05 Nobody
+                """);
+        List<CalendarService.Occurrence> may = calendarService.occurrences(java.time.LocalDate.parse("2027-05-01"), java.time.LocalDate.parse("2027-05-31"))
+                .stream().filter(o -> o.notePath().equals("cal/Birthdays.md")).toList();
+        assertThat(may).allSatisfy(o -> assertThat(o.date()).isEqualTo("2027-05-15"));
+        assertThat(may).extracting(CalendarService.Occurrence::title).containsExactlyInAnyOrder("Mary", "Mark", "Mia", "Max", "Moe", "Meg", "Mel", "Dated");
+        assertThat(may).allSatisfy(o -> assertThat(o.kind()).isEqualTo("birthday"));
+        assertThat(may).filteredOn(o -> !o.title().equals("Dated")).allSatisfy(o -> assertThat(o.detail()).isNull());
+        assertThat(may).filteredOn(o -> o.title().equals("Dated")).singleElement().extracting(CalendarService.Occurrence::detail).isEqualTo("37");
+        assertThat(may).filteredOn(o -> o.title().equals("Mel")).singleElement().extracting(CalendarService.Occurrence::time).isEqualTo("10:00");
+        assertThat(may).allSatisfy(o -> assertThat(o.rrule()).isEqualTo("FREQ=YEARLY;BYMONTH=5;BYMONTHDAY=15"));
+        assertThat(calendarService.occurrences(java.time.LocalDate.parse("2028-02-01"), java.time.LocalDate.parse("2028-03-01")))
+                .filteredOn(o -> o.title().equals("Leap")).extracting(CalendarService.Occurrence::date).containsExactly("2028-02-29");
+        assertThat(calendarService.ics()).contains("DTSTART;VALUE=DATE:20000515");
+        assertThat(calendarService.add("birthday 15 May", "Mona")).isEqualTo("birthday 15 May Mona");
+    }
+
+    @Test
     void rejectsPathsOutsideTheVault() throws Exception {
         org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> vault.resolve("../outside.md"));
         org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> vault.resolve(".git/config"));

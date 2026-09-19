@@ -22,7 +22,7 @@ the app is a Spring Boot server with a React UI, shipped as a single jar or Dock
   between columns (a card moved into *Done* is checked off), add cards; the note is the only storage
 - **Calendar** – month view of everything dated: events from notes tagged `#calendar` (one-off, ranges, and
   repeating rules: `every day 08:00`, `every Mon,Wed`, `every 2 weeks Tue from …`, `every month 1`, `every year 03-14`,
-  `birthday 1990-03-14 Mom` with the age), daily notes and tasks with due dates; add events from the tab; `.ics` export
+  `birthday 1990-03-14 Mom` with the age, `birthday 15 May Mary` without), daily notes and tasks with due dates; add events from the tab; `.ics` export
   with recurrence for any calendar app
 - **Habit tracker** – list habits in a note tagged `#habits` (`- Gym (3x/week)` sets a weekly target), check days off
   in the Habits tab; streaks and weekly counts, history kept in `<vault>/.habits.json` (synced)

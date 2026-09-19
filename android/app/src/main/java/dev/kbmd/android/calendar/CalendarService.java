@@ -3,8 +3,10 @@ package dev.kbmd.android.calendar;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -31,7 +33,8 @@ import dev.kbmd.android.vault.VaultService;
  * Calendar, mirroring the web app: events are the list items of notes tagged {@code #calendar}, starting with a
  * date ({@code 2026-09-25 14:30 Dentist}, {@code 2026-10-03..2026-10-05 Trip}) or a rule ({@code every day 08:00},
  * {@code every Mon,Wed}, {@code every 2 weeks Tue ... from 2026-09-15}, {@code every month 1}, {@code every month last},
- * {@code every year 03-14}, {@code birthday 1990-03-14 Mom}); {@code until YYYY-MM-DD} ends a rule. Daily notes and
+ * {@code every year 03-14}, {@code birthday 1990-03-14 Mom}, {@code birthday 15 May Mary} without the age; also
+ * {@code 05-15}, {@code 15.05}, {@code 15.May}, {@code May 15}, {@code May, 15}); {@code until YYYY-MM-DD} ends a rule. Daily notes and
  * tasks with a due date appear as well.
  */
 public class CalendarService {
@@ -48,6 +51,9 @@ public class CalendarService {
     private static final Pattern MODIFIER = Pattern.compile("^(from|until|till|to)\\s+(\\d{4}-\\d{2}-\\d{2})", Pattern.CASE_INSENSITIVE);
     private static final Pattern TRAILING = Pattern.compile("\\s+(from|until|till)\\s+(\\d{4}-\\d{2}-\\d{2})$", Pattern.CASE_INSENSITIVE);
     private static final Pattern DAILY_NOTE = Pattern.compile("(?:^|/)(\\d{4}-\\d{2}-\\d{2})\\.md$");
+    private static final Pattern MONTH_DAY_DIGITS = Pattern.compile("(\\d{1,2})-(\\d{1,2})");
+    private static final Pattern DAY_MONTH_DIGITS = Pattern.compile("(\\d{1,2})\\.(\\d{1,2})(?:\\.(\\d{4}))?");
+    private static final String DATE_SEPARATORS = "[.,/-]+";
     private static final Map<String, DayOfWeek> DAYS = new HashMap<>();
 
     static {
@@ -212,6 +218,7 @@ public class CalendarService {
         Set<DayOfWeek> days = EnumSet.noneOf(DayOfWeek.class);
         int dayOfMonth = 0;
         boolean birthday = false;
+        boolean knownYear = true;
         int consumed;
 
         Matcher range = DATE_RANGE.matcher(rest);
@@ -226,12 +233,15 @@ public class CalendarService {
             List<String> words = new ArrayList<>(Arrays.asList(rest.split("\\s+")));
             int at = 1;
             if (lower.startsWith("birthday ")) {
-                if (words.size() < 2 || (start = parseDate(words.get(1))) == null) {
+                BirthDate born = parseBirthDate(words, 1);
+                if (born == null) {
                     return null;
                 }
+                start = born.date;
+                knownYear = born.knownYear;
                 repeat = Repeat.YEARLY;
                 birthday = true;
-                at = 2;
+                at = 1 + born.words;
             } else {
                 if (words.size() > at && words.get(at).matches("\\d+")) {
                     interval = Math.max(1, Integer.parseInt(words.get(at++)));
@@ -364,7 +374,7 @@ public class CalendarService {
         } else if (repeat == Repeat.YEARLY && from != null) {
             start = from;
         }
-        return new Rule(repeat, start, end, interval, days, dayOfMonth, birthday, time, endTime, title, notePath, line);
+        return new Rule(repeat, start, end, interval, days, dayOfMonth, birthday, knownYear, time, endTime, title, notePath, line);
     }
 
     private static Set<DayOfWeek> dayList(String word) {
@@ -432,7 +442,7 @@ public class CalendarService {
                     YearMonth month = YearMonth.of(year, rule.start.getMonth());
                     LocalDate day = month.atDay(Math.min(rule.start.getDayOfMonth(), month.lengthOfMonth()));
                     if (!day.isBefore(first) && !day.isAfter(last)) {
-                        out.add(occurrence(rule, day, null, rule.birthday ? String.valueOf(year - rule.start.getYear()) : null));
+                        out.add(occurrence(rule, day, null, rule.birthday && rule.knownYear ? String.valueOf(year - rule.start.getYear()) : null));
                     }
                 }
                 break;
@@ -442,6 +452,72 @@ public class CalendarService {
     private static Occurrence occurrence(Rule rule, LocalDate day, LocalDate endDay, String detail) {
         return new Occurrence(day.toString(), endDay == null ? null : endDay.toString(), rule.time, rule.endTime, rule.title,
                 rule.notePath, rule.line, rule.birthday ? "birthday" : "event", rule.repeat != Repeat.NONE, detail, rrule(rule));
+    }
+
+    /**
+     * The date after {@code birthday}, starting at word {@code at}: a full date ({@code 1990-03-14}, {@code 14.03.1990})
+     * or, when the year is unknown, a month and a day: {@code 03-14}, {@code 14.03}, {@code 14 March}, {@code March 14},
+     * {@code March, 14}, {@code 14.Mar}. Null when the words do not start with a date.
+     */
+    static BirthDate parseBirthDate(List<String> words, int at) {
+        if (words.size() <= at) {
+            return null;
+        }
+        String first = words.get(at);
+        LocalDate full = parseDate(first);
+        if (full != null) {
+            return new BirthDate(full, true, 1);
+        }
+        Matcher m = MONTH_DAY_DIGITS.matcher(first);
+        if (m.matches()) {
+            return birthDate(Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2)), null, 1);
+        }
+        m = DAY_MONTH_DIGITS.matcher(first);
+        if (m.matches()) {
+            return birthDate(Integer.parseInt(m.group(2)), Integer.parseInt(m.group(1)), m.group(3) == null ? null : Integer.valueOf(m.group(3)), 1);
+        }
+        // the month by name, in one word ("14.March") or two ("14 March", "March 14", "March, 14")
+        List<String> parts = new ArrayList<>(Arrays.asList(first.split(DATE_SEPARATORS)));
+        parts.removeIf(String::isEmpty);
+        int taken = 1;
+        if (parts.size() == 1 && words.size() > at + 1) {
+            parts.addAll(Arrays.asList(words.get(at + 1).split(DATE_SEPARATORS)));
+            parts.removeIf(String::isEmpty);
+            taken = 2;
+        }
+        if (parts.size() != 2) {
+            return null;
+        }
+        boolean dayFirst = parts.get(0).matches("\\d{1,2}");
+        String day = parts.get(dayFirst ? 0 : 1);
+        Month month = monthNamed(parts.get(dayFirst ? 1 : 0));
+        if (month == null || !day.matches("\\d{1,2}")) {
+            return null;
+        }
+        return birthDate(month.getValue(), Integer.parseInt(day), null, taken);
+    }
+
+    /** The English month whose name starts with {@code text} (at least three letters): March, mar, Sept. */
+    private static Month monthNamed(String text) {
+        String name = text.toLowerCase(Locale.ROOT);
+        if (!name.matches("[a-z]{3,}")) {
+            return null;
+        }
+        for (Month month : Month.values()) {
+            if (month.name().toLowerCase(Locale.ROOT).startsWith(name)) {
+                return month;
+            }
+        }
+        return null;
+    }
+
+    /** Null when the day does not exist. Without a year the date is placed in 2000, a leap year, so 02-29 is valid. */
+    private static BirthDate birthDate(int month, int day, Integer year, int words) {
+        try {
+            return new BirthDate(LocalDate.of(year == null ? 2000 : year, month, day), year != null, words);
+        } catch (DateTimeException e) {
+            return null;
+        }
     }
 
     static LocalDate parseDate(String text) {
@@ -484,6 +560,8 @@ public class CalendarService {
         public final Set<DayOfWeek> days;
         public final int dayOfMonth;
         public final boolean birthday;
+        /** false for a birthday given as a month and a day only: the age is unknown */
+        public final boolean knownYear;
         public final String time;
         public final String endTime;
         public final String title;
@@ -491,7 +569,7 @@ public class CalendarService {
         public final int line;
 
         Rule(Repeat repeat, LocalDate start, LocalDate end, int interval, Set<DayOfWeek> days, int dayOfMonth,
-             boolean birthday, String time, String endTime, String title, String notePath, int line) {
+             boolean birthday, boolean knownYear, String time, String endTime, String title, String notePath, int line) {
             this.repeat = repeat;
             this.start = start;
             this.end = end;
@@ -499,11 +577,25 @@ public class CalendarService {
             this.days = days;
             this.dayOfMonth = dayOfMonth;
             this.birthday = birthday;
+            this.knownYear = knownYear;
             this.time = time;
             this.endTime = endTime;
             this.title = title;
             this.notePath = notePath;
             this.line = line;
+        }
+    }
+
+    /** A parsed birth date and how many words it took; {@code knownYear} is false for a month and a day only. */
+    static final class BirthDate {
+        final LocalDate date;
+        final boolean knownYear;
+        final int words;
+
+        BirthDate(LocalDate date, boolean knownYear, int words) {
+            this.date = date;
+            this.knownYear = knownYear;
+            this.words = words;
         }
     }
 
