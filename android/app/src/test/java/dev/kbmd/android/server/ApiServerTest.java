@@ -222,6 +222,7 @@ public class ApiServerTest {
         JSONArray decks = new JSONArray(call("GET", "/api/flashcards/decks", null, null).text());
         assertEquals("geo", decks.getJSONObject(0).getString("name"));
         assertEquals(2, decks.getJSONObject(0).getInt("fresh"));
+        assertEquals("Cards.md", decks.getJSONObject(0).getJSONArray("notes").getString(0));
 
         JSONArray due = new JSONArray(call("GET", "/api/flashcards/due?deck=geo", null, null).text());
         JSONObject card = due.getJSONObject(0);

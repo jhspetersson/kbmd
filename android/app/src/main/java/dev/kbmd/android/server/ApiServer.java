@@ -191,7 +191,8 @@ public class ApiServer extends NanoHTTPD {
             case "GET /flashcards/decks": {
                 JSONArray decks = new JSONArray();
                 for (FlashcardService.Deck deck : backend.flashcards.decks()) {
-                    decks.put(new JSONObject().put("name", deck.name).put("total", deck.total).put("fresh", deck.fresh).put("due", deck.due));
+                    decks.put(new JSONObject().put("name", deck.name).put("total", deck.total).put("fresh", deck.fresh).put("due", deck.due)
+                            .put("notes", new JSONArray(deck.notes)));
                 }
                 return json(200, decks);
             }

@@ -173,7 +173,16 @@ The capital of Spain is ==Madrid==.   (cloze)`}</pre>
               <tbody>
                 {decks.map((deck) => (
                   <tr key={deck.name}>
-                    <td>{deck.name}</td>
+                    <td>
+                      {deck.name}
+                      <span className="deck-notes">
+                        {deck.notes.map((path) => (
+                          <button key={path} className="link-button" title={`Open ${path}`} onClick={() => onOpen(path)}>
+                            {titleOf(path)}
+                          </button>
+                        ))}
+                      </span>
+                    </td>
                     <td className="fresh">{deck.fresh}</td>
                     <td className="due">{deck.due}</td>
                     <td>{deck.total}</td>

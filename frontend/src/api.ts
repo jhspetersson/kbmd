@@ -78,6 +78,8 @@ export interface Deck {
   total: number;
   fresh: number;
   due: number;
+  /** the notes the cards come from */
+  notes: string[];
 }
 
 export interface StudyCard {

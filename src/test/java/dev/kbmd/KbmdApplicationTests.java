@@ -167,7 +167,7 @@ class KbmdApplicationTests {
                 """);
         notes.save("cards/Untagged.md", "ignored::because the note has no flashcards tag");
 
-        assertThat(flashcards.decks()).containsExactly(new FlashcardService.Deck("spanish", 6, 6, 0));
+        assertThat(flashcards.decks()).containsExactly(new FlashcardService.Deck("spanish", 6, 6, 0, List.of("cards/Spanish.md")));
         List<FlashcardService.StudyCard> due = flashcards.due("spanish");
         assertThat(due).hasSize(6);
         assertThat(due.get(0).frontHtml()).contains("hola").doesNotContain("flashcards");

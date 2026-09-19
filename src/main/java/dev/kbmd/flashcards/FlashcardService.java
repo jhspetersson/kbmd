@@ -8,8 +8,10 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import dev.kbmd.index.NoteIndex;
@@ -51,8 +53,10 @@ public class FlashcardService {
     public synchronized List<Deck> decks() {
         LocalDate today = LocalDate.now();
         Map<String, int[]> counts = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        Map<String, Set<String>> notes = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (Card card : cards(loadStates())) {
             int[] count = counts.computeIfAbsent(card.deck(), k -> new int[3]);
+            notes.computeIfAbsent(card.deck(), k -> new LinkedHashSet<>()).add(card.notePath());
             count[0]++;
             if (card.state() == null) {
                 count[1]++;
@@ -61,7 +65,7 @@ public class FlashcardService {
             }
         }
         List<Deck> decks = new ArrayList<>();
-        counts.forEach((name, count) -> decks.add(new Deck(name, count[0], count[1], count[2])));
+        counts.forEach((name, count) -> decks.add(new Deck(name, count[0], count[1], count[2], List.copyOf(notes.get(name)))));
         return decks;
     }
 
@@ -190,7 +194,8 @@ public class FlashcardService {
     private record Card(String id, String deck, String notePath, String front, String back, int line, CardState state) {
     }
 
-    public record Deck(String name, int total, int fresh, int due) {
+    /** @param notes the notes the cards come from, in vault order */
+    public record Deck(String name, int total, int fresh, int due, List<String> notes) {
     }
 
     public record StudyCard(String id, String deck, String notePath, int line, boolean fresh,
