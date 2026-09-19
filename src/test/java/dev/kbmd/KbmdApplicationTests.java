@@ -170,13 +170,17 @@ class KbmdApplicationTests {
         assertThat(flashcards.decks()).containsExactly(new FlashcardService.Deck("spanish", 6, 6, 0, List.of("cards/Spanish.md")));
         List<FlashcardService.StudyCard> due = flashcards.due("spanish");
         assertThat(due).hasSize(6);
-        assertThat(due.get(0).frontHtml()).contains("hola").doesNotContain("flashcards");
+        FlashcardService.StudyCard hola = due.stream().filter(card -> card.frontHtml().contains("hola")).findFirst().orElseThrow();
+        assertThat(hola.frontHtml()).doesNotContain("flashcards");
         assertThat(due).anyMatch(card -> card.frontHtml().contains("[…]") && card.backHtml().contains("<strong>Madrid</strong>"));
+        // the queue is shuffled: the same cards, not necessarily in note order
+        assertThat(flashcards.due("spanish")).extracting(FlashcardService.StudyCard::id).containsExactlyInAnyOrderElementsOf(due.stream().map(FlashcardService.StudyCard::id).toList());
 
-        FlashcardService.CardState state = flashcards.review(due.get(0).id(), FlashcardService.Rating.GOOD);
+        FlashcardService.CardState state = flashcards.review(hola.id(), FlashcardService.Rating.GOOD);
         assertThat(state.interval()).isEqualTo(1);
         assertThat(flashcards.due("spanish")).hasSize(5);
-        assertThat(flashcards.review(due.get(1).id(), FlashcardService.Rating.AGAIN).interval()).isZero();
+        FlashcardService.StudyCard other = due.stream().filter(card -> !card.id().equals(hola.id())).findFirst().orElseThrow();
+        assertThat(flashcards.review(other.id(), FlashcardService.Rating.AGAIN).interval()).isZero();
         assertThat(flashcards.due("spanish")).hasSize(5);
         assertThat(flashcards.exportForAnki("spanish", "http://localhost:8787")).contains("#deck column:3").contains("\tspanish\t");
     }

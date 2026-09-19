@@ -225,7 +225,9 @@ public class ApiServerTest {
         assertEquals("Cards.md", decks.getJSONObject(0).getJSONArray("notes").getString(0));
 
         JSONArray due = new JSONArray(call("GET", "/api/flashcards/due?deck=geo", null, null).text());
-        JSONObject card = due.getJSONObject(0);
+        assertEquals(2, due.length());
+        // the queue is shuffled, so find the card by its content
+        JSONObject card = due.getJSONObject(due.getJSONObject(0).getString("frontHtml").contains("Capital of France") ? 0 : 1);
         assertTrue(card.getString("frontHtml").contains("Capital of France"));
         assertFalse(card.getString("frontHtml").contains("flashcards"));
         assertEquals(4, card.getJSONObject("intervals").getInt("EASY"));

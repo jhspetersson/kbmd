@@ -6,7 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -69,15 +69,16 @@ public class FlashcardService {
         return decks;
     }
 
-    /** Cards to study now: due reviews first (most overdue first), then new cards in note order. */
+    /** Cards to study now, due reviews and new cards shuffled together so neighbouring lines do not give each other away. */
     public synchronized List<StudyCard> due(String deck) {
         LocalDate today = LocalDate.now();
-        return cards(loadStates()).stream()
+        List<StudyCard> queue = new ArrayList<>(cards(loadStates()).stream()
                 .filter(card -> deck == null || deck.isBlank() || card.deck().equalsIgnoreCase(deck))
                 .filter(card -> card.state() == null || !LocalDate.parse(card.state().due()).isAfter(today))
-                .sorted(Comparator.comparing((Card card) -> card.state() == null ? "9999" : card.state().due()))
                 .map(this::toStudyCard)
-                .toList();
+                .toList());
+        Collections.shuffle(queue);
+        return queue;
     }
 
     public synchronized CardState review(String id, Rating rating) {
