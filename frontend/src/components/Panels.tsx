@@ -107,7 +107,7 @@ interface Heading {
   line: number;
 }
 
-function outline(content: string): Heading[] {
+export function outline(content: string): Heading[] {
   const headings: Heading[] = [];
   let fenced = false;
   content.split('\n').forEach((line, i) => {

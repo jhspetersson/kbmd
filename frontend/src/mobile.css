@@ -43,6 +43,18 @@
     padding: 12px 14px;
     font-size: 15px;
   }
+  .heading-menu .heading-menu-list button {
+    padding: 11px 12px;
+    font-size: 15px;
+  }
+  .scroll-keeper {
+    right: 14px;
+    bottom: 14px;
+  }
+  .back-to-top {
+    width: 42px;
+    height: 42px;
+  }
   .tab-bar {
     min-height: 44px;
   }
@@ -206,6 +218,10 @@
     left: 8px;
     padding: 8px;
     max-width: 60vw;
+  }
+  .graph-zoom {
+    right: 8px;
+    bottom: 8px;
   }
   .flashcards {
     padding: 16px 12px;

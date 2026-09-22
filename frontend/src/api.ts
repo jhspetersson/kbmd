@@ -231,6 +231,9 @@ export const api = {
   tasks: () => request<Task[]>('/api/tasks'),
   addTask: (text: string, path?: string) => request<Task>('/api/tasks', json('POST', { text, path })),
   toggleTask: (path: string, line: number) => request<{ done: boolean }>('/api/tasks/toggle', json('POST', { path, line })),
+  /** Puts a task before the task on beforeLine of targetPath, or after that note's last task when beforeLine is 0. */
+  moveTask: (path: string, line: number, targetPath: string, beforeLine: number) =>
+    request<Task>('/api/tasks/move', json('POST', { path, line, targetPath, beforeLine })),
   boards: () => request<Board[]>('/api/kanban'),
   moveCard: (path: string, line: number, column: string, position: number) =>
     request<Board>('/api/kanban/move', json('POST', { path, line, column, position })),

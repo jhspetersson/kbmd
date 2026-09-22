@@ -52,7 +52,8 @@ scope, since the repository API is used rather than Git over HTTPS).
   switch; it asks for the calendar permission once), every vault event has *Add to phone calendar* (opens the
   calendar app's editor with the event and its recurrence filled in), and the `.ics` export saves through the
   system dialog.
-- Exports (vault zip, Anki deck) go through the system "save as" dialog; other attachments open in their apps.
+- Exports go through the system "save as" dialog: the vault zip, an Anki deck, or a single note (the download
+  button next to the view switcher, or **Export…** on a long-pressed file); other attachments open in their apps.
 - System bars follow the app's light/dark theme; edge-to-edge with the keyboard and the camera cutout respected.
 
 The vault is in `Android/data/dev.kbmd.android/files/vault` on the shared storage (reachable over USB). Uninstalling

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { TreeNode } from '../api';
 import { isTouch } from '../native';
 
-export type TreeAction = 'new-note' | 'new-drawing' | 'new-folder' | 'rename' | 'delete' | 'upload';
+export type TreeAction = 'new-note' | 'new-drawing' | 'new-folder' | 'rename' | 'delete' | 'upload' | 'export';
 
 interface Props {
   root: TreeNode;
@@ -166,6 +166,7 @@ export function FileTree({ root, activePath, onOpen, onAction, onMove, onUploadT
             <>
               {menu.node.type === 'folder' && <hr />}
               <button onClick={() => onAction('rename', menu.node)}>Rename / move…</button>
+              {menu.node.type !== 'folder' && <button onClick={() => onAction('export', menu.node)}>Export…</button>}
               <button className="danger" onClick={() => onAction('delete', menu.node)}>Delete</button>
             </>
           )}

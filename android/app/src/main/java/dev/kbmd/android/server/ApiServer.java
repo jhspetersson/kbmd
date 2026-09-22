@@ -245,6 +245,11 @@ public class ApiServer extends NanoHTTPD {
                 JSONObject request = jsonBody(body);
                 return json(200, new JSONObject().put("done", backend.tasks.toggle(requiredText(request, "path"), request.getInt("line"))));
             }
+            case "POST /tasks/move": {
+                JSONObject request = jsonBody(body);
+                return json(200, task(backend.tasks.moveTask(requiredText(request, "path"), request.getInt("line"),
+                        request.isNull("targetPath") ? null : request.getString("targetPath"), request.optInt("beforeLine", 0))));
+            }
             case "GET /kanban": {
                 JSONArray boards = new JSONArray();
                 for (TaskService.Board board : backend.tasks.boards()) {

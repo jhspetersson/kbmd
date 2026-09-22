@@ -1,6 +1,7 @@
-import { CalendarClock, ListTodo, Plus } from 'lucide-react';
+import { CalendarClock, ListTodo, MoreHorizontal, Plus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, type Task } from '../api';
+import { isTouch } from '../native';
 
 interface Props {
   revision: number;
@@ -10,6 +11,9 @@ interface Props {
 }
 
 type Filter = 'open' | 'done' | 'all';
+
+const DRAG_TYPE = 'application/x-kbmd-task';
+const keyOf = (task: Task) => `${task.notePath}:${task.line}`;
 
 const today = () => {
   const d = new Date();
@@ -32,6 +36,18 @@ export function TasksView({ revision, onOpen, onChanged, onError }: Props) {
   const [query, setQuery] = useState('');
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
+  // reordering: rows are dragged with a mouse; with a finger each row has a move menu instead
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [over, setOver] = useState<string | null>(null);
+  const [menu, setMenu] = useState<string | null>(null);
+  const touch = isTouch();
+
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    window.addEventListener('click', close);
+    return () => window.removeEventListener('click', close);
+  }, [menu]);
 
   const load = useCallback(() => {
     api
@@ -78,6 +94,36 @@ export function TasksView({ revision, onOpen, onChanged, onError }: Props) {
     }
   };
 
+  /** Moves a task before another one (or to the end of a note's tasks when beforeLine is 0); the notes are edited. */
+  const move = async (task: Task, targetPath: string, beforeLine: number) => {
+    setMenu(null);
+    if (task.notePath === targetPath && task.line === beforeLine) return;
+    try {
+      await api.moveTask(task.notePath, task.line, targetPath, beforeLine);
+      onChanged();
+      load();
+    } catch (e) {
+      onError((e as Error).message);
+      load();
+    }
+  };
+
+  const dragOver = (key: string) => (event: React.DragEvent) => {
+    if (!event.dataTransfer.types.includes(DRAG_TYPE)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    setOver(key);
+  };
+
+  const drop = (targetPath: string, beforeLine: number) => (event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setOver(null);
+    setDragging(null);
+    const source = tasks?.find((t) => keyOf(t) === event.dataTransfer.getData(DRAG_TYPE));
+    if (source) void move(source, targetPath, beforeLine);
+  };
+
   const add = async () => {
     const text = draft.trim();
     if (!text || busy) return;
@@ -96,10 +142,45 @@ export function TasksView({ revision, onOpen, onChanged, onError }: Props) {
 
   if (!tasks) return <div className="empty-state">Loading…</div>;
 
-  const row = (task: Task, showNote: boolean) => {
+  /** The move menu for a task among its note's visible siblings, plus the other notes that have tasks. */
+  const moveMenu = (task: Task, siblings: Task[], index: number) => (
+    <div className="context-menu kanban-menu" onClick={(e) => e.stopPropagation()}>
+      {index > 0 && <button onClick={() => void move(task, task.notePath, siblings[index - 1].line)}>Move up</button>}
+      {index < siblings.length - 1 && (
+        <button onClick={() => void move(task, task.notePath, index + 2 < siblings.length ? siblings[index + 2].line : 0)}>Move down</button>
+      )}
+      {byNote
+        .filter(([path]) => path !== task.notePath)
+        .map(([path, list]) => (
+          <button key={path} onClick={() => void move(task, path, 0)}>
+            Move to {list[0].noteTitle}
+          </button>
+        ))}
+    </div>
+  );
+
+  /** A task line; inside a note's group (siblings given) it can be dragged or moved through its menu. */
+  const row = (task: Task, showNote: boolean, siblings?: Task[], index = 0) => {
     const due = task.due ? dueLabel(task.due, now) : null;
+    const key = keyOf(task);
+    const movable = siblings !== undefined;
     return (
-      <div key={`${task.notePath}:${task.line}`} className={`task-row${task.done ? ' done' : ''}`}>
+      <div
+        key={key}
+        className={`task-row${task.done ? ' done' : ''}${dragging === key ? ' dragging' : ''}${over === key ? ' over' : ''}`}
+        draggable={movable && !touch}
+        onDragStart={(e) => {
+          e.dataTransfer.setData(DRAG_TYPE, key);
+          e.dataTransfer.effectAllowed = 'move';
+          setDragging(key);
+        }}
+        onDragEnd={() => {
+          setDragging(null);
+          setOver(null);
+        }}
+        onDragOver={movable ? dragOver(key) : undefined}
+        onDrop={movable ? drop(task.notePath, task.line) : undefined}
+      >
         <input type="checkbox" checked={task.done} onChange={() => void toggle(task)} />
         <span className="task-text">
           {task.text.replace(/#[\p{L}_][\p{L}\p{N}_/-]*/gu, '').trim()}
@@ -119,6 +200,19 @@ export function TasksView({ revision, onOpen, onChanged, onError }: Props) {
             {task.noteTitle}
           </button>
         )}
+        {movable && (
+          <button
+            className="icon-button task-menu"
+            title="Move"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenu(menu === key ? null : key);
+            }}
+          >
+            <MoreHorizontal size={15} />
+          </button>
+        )}
+        {movable && menu === key && moveMenu(task, siblings, index)}
       </div>
     );
   };
@@ -162,14 +256,20 @@ export function TasksView({ revision, onOpen, onChanged, onError }: Props) {
           </section>
         )}
         {byNote.map(([path, list]) => (
-          <section key={path} className="task-group">
+          <section
+            key={path}
+            className={`task-group${over === `group:${path}` ? ' over' : ''}`}
+            onDragOver={dragOver(`group:${path}`)}
+            onDragLeave={() => setOver((current) => (current === `group:${path}` ? null : current))}
+            onDrop={drop(path, 0)}
+          >
             <h3>
               <button className="link-button" onClick={() => onOpen(path)} title={path}>
                 {list[0].noteTitle}
               </button>
               <span className="count">{list.length}</span>
             </h3>
-            {list.map((task) => row(task, false))}
+            {list.map((task, index) => row(task, false, list, index))}
           </section>
         ))}
         {visible.length === 0 && (

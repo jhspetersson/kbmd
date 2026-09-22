@@ -113,6 +113,63 @@ public class TaskService {
         return describe(target, NoteIndex.title(target), line, " ", clean);
     }
 
+    /**
+     * Moves a task (its line and the indented lines under it) so that it sits before the task on {@code beforeLine}
+     * of {@code targetPath}, or after that note's last task when {@code beforeLine} is 0. Returns the task where it
+     * now is.
+     */
+    public synchronized Task moveTask(String path, int line, String targetPath, int beforeLine) {
+        String target = targetPath == null || targetPath.trim().isEmpty() ? path : targetPath;
+        List<String> source = new ArrayList<>(Arrays.asList(vault.read(path).split("\\R", -1)));
+        if (line < 1 || line > source.size() || !TASK.matcher(source.get(line - 1)).matches()) {
+            throw HttpError.conflict("That line is no longer a task (was the note edited?)");
+        }
+        int start = line - 1;
+        List<String> block = new ArrayList<>(source.subList(start, blockEnd(source, start)));
+        source.subList(start, start + block.size()).clear();
+
+        boolean sameNote = target.equals(path);
+        List<String> lines = sameNote ? source : new ArrayList<>(Arrays.asList(vault.read(target).split("\\R", -1)));
+        int at;
+        if (beforeLine > 0) {
+            at = beforeLine - 1;
+            if (sameNote && at > start) {
+                at -= block.size(); // the lines above it moved up when the block came out
+            }
+            if (at < 0 || at >= lines.size() || !TASK.matcher(lines.get(at)).matches()) {
+                throw HttpError.conflict("The target is no longer a task (was the note edited?)");
+            }
+        } else {
+            at = afterLastTask(lines);
+        }
+        lines.addAll(at, block);
+        if (!sameNote) {
+            notes.save(path, String.join("\n", source));
+        }
+        notes.save(target, String.join("\n", lines));
+        Matcher task = TASK.matcher(block.get(0));
+        task.matches();
+        return describe(target, NoteIndex.title(target), at + 1, task.group(2), task.group(3));
+    }
+
+    /** Where an appended task goes: after the note's last task and its detail lines, else at the very end. */
+    private static int afterLastTask(List<String> lines) {
+        boolean fenced = false;
+        int last = -1;
+        for (int i = 0; i < lines.size(); i++) {
+            if (FENCE.matcher(lines.get(i)).matches()) {
+                fenced = !fenced;
+            } else if (!fenced && TASK.matcher(lines.get(i)).matches()) {
+                last = i;
+            }
+        }
+        if (last >= 0) {
+            return blockEnd(lines, last);
+        }
+        // before the empty element that stands for the note's final newline
+        return !lines.isEmpty() && lines.get(lines.size() - 1).isEmpty() ? lines.size() - 1 : lines.size();
+    }
+
     private static String setDone(String line, boolean done) {
         Matcher item = LIST_ITEM.matcher(line);
         if (!item.matches() || item.group(2) == null) {

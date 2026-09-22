@@ -42,6 +42,7 @@ import {
 import { Lightbox, PromptDialog, QuickSwitcher, type PromptRequest } from './components/Dialogs';
 import { FlashcardsView } from './components/FlashcardsView';
 import { FileTree, type TreeAction } from './components/FileTree';
+import { HeadingMenu } from './components/HeadingMenu';
 import { GraphView } from './components/GraphView';
 import { CalendarView } from './components/CalendarView';
 import { HabitsView } from './components/HabitsView';
@@ -50,7 +51,7 @@ import { TasksView } from './components/TasksView';
 import { NoteView, type ViewMode } from './components/NoteView';
 import { ContextPanel, SearchPanel, TagsPanel } from './components/Panels';
 import { SyncDialog } from './components/SyncDialog';
-import { isNarrow } from './native';
+import { isNarrow, isNative } from './native';
 
 const DrawingEditor = lazy(() => import('./components/DrawingEditor').then((module) => ({ default: module.DrawingEditor })));
 
@@ -319,8 +320,22 @@ export function App() {
       setStatus('Uploaded');
     });
 
+  /** A copy of one file: through the phone's "save as" dialog, or as a plain browser download. */
+  const exportFile = async (path: string) => {
+    await flushRef.current?.(); // what was typed since the last save belongs in the copy
+    if (isNative && window.KbmdNative?.exportFile) {
+      window.KbmdNative.exportFile(path);
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = api.rawUrl(path);
+    link.download = baseName(path);
+    link.click();
+  };
+
   const onTreeAction = (action: TreeAction, node: TreeNode) => {
     if (action === 'new-note') void createNote(node.path);
+    if (action === 'export') void exportFile(node.path);
     if (action === 'new-drawing') void createDrawing(node.path);
     if (action === 'new-folder') void createFolder(node.path);
     if (action === 'rename') void rename(node);
@@ -668,9 +683,11 @@ export function App() {
           <div className="tab-bar-actions">
             {activeType === 'note' && (
               <>
+                <HeadingMenu content={content} onPick={goToHeading} />
                 <button className={mode === 'edit' ? 'on' : ''} title="Editor only" onClick={() => setMode('edit')}><Pencil size={16} /></button>
                 <button className={mode === 'split' ? 'on' : ''} title="Side by side" onClick={() => setMode('split')}><Columns2 size={16} /></button>
                 <button className={mode === 'preview' ? 'on' : ''} title="Reading view" onClick={() => setMode('preview')}><BookOpen size={16} /></button>
+                <button title="Export this note" onClick={() => { if (active) void exportFile(active); }}><Download size={16} /></button>
               </>
             )}
             <button className={rightOpen ? 'on' : ''} title="Backlinks and outline" onClick={() => setRightOpen(!rightOpen)}><PanelRight size={16} /></button>

@@ -35,6 +35,11 @@ public class TaskController {
         return Map.of("done", tasks.toggle(request.path(), request.line()));
     }
 
+    @PostMapping("/tasks/move")
+    public TaskService.Task moveTask(@RequestBody MoveTaskRequest request) {
+        return tasks.moveTask(request.path(), request.line(), request.targetPath(), request.beforeLine());
+    }
+
     @GetMapping("/kanban")
     public List<TaskService.Board> boards() {
         return tasks.boards();
@@ -54,6 +59,10 @@ public class TaskController {
     }
 
     public record LineRequest(String path, int line) {
+    }
+
+    /** {@code beforeLine} 0: after the target note's last task. */
+    public record MoveTaskRequest(String path, int line, String targetPath, int beforeLine) {
     }
 
     public record MoveCardRequest(String path, int line, String column, int position) {

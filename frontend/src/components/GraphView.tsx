@@ -1,3 +1,4 @@
+import { Maximize, ZoomIn, ZoomOut } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { api, type GraphData } from '../api';
 
@@ -41,6 +42,8 @@ export function GraphView({ activePath, revision, onOpen, onCreate }: Props) {
   const callbacks = useRef({ onOpen, onCreate });
   callbacks.current = { onOpen, onCreate };
   const positions = useRef(new Map<string, { x: number; y: number }>());
+  // the zoom buttons reach into the running animation through this
+  const view = useRef<{ zoomBy: (factor: number) => void; reset: () => void } | null>(null);
 
   useEffect(() => {
     api.graph().then(setData).catch(() => setData({ nodes: [], edges: [] }));
@@ -155,6 +158,21 @@ export function GraphView({ activePath, revision, onOpen, onCreate }: Props) {
     resize();
 
     const toWorld = (x: number, y: number) => ({ x: (x - width / 2 - offsetX) / scale, y: (y - height / 2 - offsetY) / scale });
+    /** Zooms so that the world point under (x, y) stays put. */
+    const zoomAt = (x: number, y: number, factor: number) => {
+      const before = toWorld(x, y);
+      scale = Math.min(6, Math.max(0.1, scale * factor));
+      offsetX = x - width / 2 - before.x * scale;
+      offsetY = y - height / 2 - before.y * scale;
+    };
+    view.current = {
+      zoomBy: (factor) => zoomAt(width / 2, height / 2, factor),
+      reset: () => {
+        scale = 1;
+        offsetX = 0;
+        offsetY = 0;
+      },
+    };
     const nodeAt = (x: number, y: number) => {
       const point = toWorld(x, y);
       let best: SimNode | null = null;
@@ -237,18 +255,42 @@ export function GraphView({ activePath, revision, onOpen, onCreate }: Props) {
       const rect = canvas.getBoundingClientRect();
       return { x: event.clientX - rect.left, y: event.clientY - rect.top };
     };
+    // fingers on the canvas: two of them pinch-zoom instead of dragging or panning
+    const pointers = new Map<number, { x: number; y: number }>();
+    let pinchDistance = 0;
+    const pinch = () => {
+      const [a, b] = [...pointers.values()];
+      return { distance: Math.hypot(b.x - a.x, b.y - a.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    };
     const onDown = (event: PointerEvent) => {
       const p = local(event);
+      pointers.set(event.pointerId, p);
+      canvas.setPointerCapture(event.pointerId);
+      if (pointers.size === 2) {
+        if (dragged) dragged.pinned = false;
+        dragged = null;
+        panning = false;
+        moved = true; // lifting the fingers must not open a node
+        pinchDistance = pinch().distance;
+        return;
+      }
+      if (pointers.size > 2) return;
       dragged = nodeAt(p.x, p.y);
       if (dragged) dragged.pinned = true;
       else panning = true;
       moved = false;
       lastX = p.x;
       lastY = p.y;
-      canvas.setPointerCapture(event.pointerId);
     };
     const onMove = (event: PointerEvent) => {
       const p = local(event);
+      if (pointers.has(event.pointerId)) pointers.set(event.pointerId, p);
+      if (pointers.size >= 2) {
+        const now = pinch();
+        if (pinchDistance > 0 && now.distance > 0) zoomAt(now.x, now.y, now.distance / pinchDistance);
+        pinchDistance = now.distance;
+        return;
+      }
       if (dragged) {
         const point = toWorld(p.x, p.y);
         dragged.x = point.x;
@@ -265,7 +307,9 @@ export function GraphView({ activePath, revision, onOpen, onCreate }: Props) {
       lastX = p.x;
       lastY = p.y;
     };
-    const onUp = () => {
+    const onUp = (event: PointerEvent) => {
+      pointers.delete(event.pointerId);
+      pinchDistance = 0;
       if (dragged && !moved) {
         if (dragged.exists) callbacks.current.onOpen(dragged.id);
         else callbacks.current.onCreate(dragged.label);
@@ -277,10 +321,7 @@ export function GraphView({ activePath, revision, onOpen, onCreate }: Props) {
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
       const p = local(event);
-      const before = toWorld(p.x, p.y);
-      scale = Math.min(6, Math.max(0.1, scale * Math.exp(-event.deltaY * 0.0015)));
-      offsetX = p.x - width / 2 - before.x * scale;
-      offsetY = p.y - height / 2 - before.y * scale;
+      zoomAt(p.x, p.y, Math.exp(-event.deltaY * 0.0015));
     };
     const onLeave = () => {
       hovered = null;
@@ -288,6 +329,7 @@ export function GraphView({ activePath, revision, onOpen, onCreate }: Props) {
     canvas.addEventListener('pointerdown', onDown);
     canvas.addEventListener('pointermove', onMove);
     canvas.addEventListener('pointerup', onUp);
+    canvas.addEventListener('pointercancel', onUp);
     canvas.addEventListener('pointerleave', onLeave);
     canvas.addEventListener('wheel', onWheel, { passive: false });
 
@@ -297,8 +339,10 @@ export function GraphView({ activePath, revision, onOpen, onCreate }: Props) {
       canvas.removeEventListener('pointerdown', onDown);
       canvas.removeEventListener('pointermove', onMove);
       canvas.removeEventListener('pointerup', onUp);
+      canvas.removeEventListener('pointercancel', onUp);
       canvas.removeEventListener('pointerleave', onLeave);
       canvas.removeEventListener('wheel', onWheel);
+      view.current = null;
       // remember the layout so a reload does not reshuffle everything
       nodes.forEach((node) => positions.current.set(node.id, { x: node.x, y: node.y }));
     };
@@ -318,6 +362,11 @@ export function GraphView({ activePath, revision, onOpen, onCreate }: Props) {
         <span className="graph-stats">
           {data ? `${data.nodes.filter((n) => n.exists).length} notes · ${data.edges.length} links` : 'Loading…'}
         </span>
+      </div>
+      <div className="graph-zoom">
+        <button className="icon-button" title="Zoom in" onClick={() => view.current?.zoomBy(1.3)}><ZoomIn size={18} /></button>
+        <button className="icon-button" title="Zoom out" onClick={() => view.current?.zoomBy(1 / 1.3)}><ZoomOut size={18} /></button>
+        <button className="icon-button" title="Reset zoom" onClick={() => view.current?.reset()}><Maximize size={18} /></button>
       </div>
     </div>
   );

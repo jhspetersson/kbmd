@@ -253,6 +253,17 @@ public class MainActivity extends Activity {
             });
         }
 
+        /** A copy of one vault file (a note, a drawing, an attachment) goes through the "save as" dialog. */
+        @JavascriptInterface
+        public void exportFile(String path) {
+            if (path == null || path.isEmpty()) {
+                return;
+            }
+            String name = path.substring(path.lastIndexOf('/') + 1);
+            String url = app.origin() + "/api/files/raw?path=" + Uri.encode(path);
+            runOnUiThread(() -> saveAs(url, name, ApiServer.mimeType(name).replaceAll(";.*", "")));
+        }
+
         /** The UI is up and listening for commands. */
         @JavascriptInterface
         public void ready() {
@@ -532,7 +543,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    /** Exports (vault zip, Anki deck) are saved wherever the user points the system's "save as" dialog. */
+    /** Exports (vault zip, Anki deck, a single note) are saved wherever the user points the system's "save as" dialog. */
     private void saveAs(String url, String suggestedName, String mimeType) {
         String name = suggestedName;
         if (name == null) {

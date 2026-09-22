@@ -21,6 +21,8 @@ declare global {
       phoneEvents?: (from: string, to: string) => string | null;
       /** Opens the phone's calendar app on a prefilled "new event" screen. */
       addToCalendar?: (title: string, date: string, time: string, endTime: string, rrule: string) => void;
+      /** Saves a copy of a vault file wherever the system's "save as" dialog points. */
+      exportFile?: (path: string) => void;
     };
     __kbmd?: NativeHooks;
   }

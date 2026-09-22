@@ -6,9 +6,9 @@ the app is a Spring Boot server with a React UI, shipped as a single jar or Dock
 - **Local Markdown files** – the folder is the database; works with an existing Obsidian vault
 - **Wikilinks** – `[[Note]]`, `[[Note#Heading|label]]`, `![[embed.png|300]]`, `[[` autocomplete, backlinks,
   links are rewritten when a note is renamed or moved
-- **Graph view** – force-directed graph of notes and links, with filter, zoom, drag
+- **Graph view** – force-directed graph of notes and links, with filter, zoom (wheel, pinch or the +/− buttons), drag
 - **Indexed search** – Lucene full-text index: prefix matching while typing, `"phrases"`, `tag:name`, `path:folder`
-- **Editor** – CodeMirror 6, editor / split / reading modes, autosave, tabs, outline, tags, daily notes, quick switcher
+- **Editor** – CodeMirror 6, editor / split / reading modes, autosave, tabs, outline, tags, daily notes, quick switcher, find & replace and undo / redo buttons, split a long note at the cursor, jump-to-heading menu and back-to-top for long notes
 - **Uploads** – paste, drag & drop or pick files; stored in `attachments/` and embedded automatically
 - **Diagrams** – ` ```mermaid ` blocks for text diagrams; free-form drawings with the built-in Excalidraw editor
   (`*.excalidraw` files, embed with `![[Drawing.excalidraw]]`)
@@ -17,7 +17,7 @@ the app is a Spring Boot server with a React UI, shipped as a single jar or Dock
   (both directions), multi-line cards split by a `?` line, `==cloze==`. Spaced-repetition review (SM-2, Again / Hard /
   Good / Easy), progress kept in `<vault>/.flashcards.json` (synced with Git), export to Anki's text import format
 - **Tasks** – every `- [ ]` item from every note in one place: open/done filters, search, due dates
-  (`📅 2026-09-20` or `due:2026-09-20`), tags; tick a box and the note is edited in place; quick-add to `Tasks.md`
+  (`📅 2026-09-20` or `due:2026-09-20`), tags; tick a box and the note is edited in place; quick-add to `Tasks.md`; drag a task to reorder it or move it to another note (a move menu on phones)
 - **Kanban** – a note tagged `#kanban` is a board, each `## heading` a column, each list item a card; drag cards
   between columns (a card moved into *Done* is checked off), add cards; the note is the only storage
 - **Calendar** – month view of everything dated: events from notes tagged `#calendar` (one-off, ranges, and
@@ -27,7 +27,7 @@ the app is a Spring Boot server with a React UI, shipped as a single jar or Dock
 - **Habit tracker** – list habits in a note tagged `#habits` (`- Gym (3x/week)` sets a weekly target), check days off
   in the Habits tab; streaks and weekly counts, history kept in `<vault>/.habits.json` (synced)
 - **Sync with GitHub / GitLab** – two-way Git sync over HTTPS using an access token, manual or on a timer
-- **Export** – the whole vault as a zip
+- **Export** – the whole vault as a zip, or a single note (the download button next to the view switcher, or **Export…** in the file tree menu)
 
 ## Run with Docker (one command)
 

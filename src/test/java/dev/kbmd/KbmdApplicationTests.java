@@ -262,6 +262,19 @@ class KbmdApplicationTests {
         assertThat(added.notePath()).isEqualTo("Tasks.md");
         assertThat(vault.read("Tasks.md")).isEqualTo("# Tasks\n- [ ] Call the nursery\n");
         assertThat(taskService.add("Second", null).line()).isEqualTo(3);
+
+        // reordering keeps a task's detail lines with it; moving to another note appends after that note's tasks
+        notes.save("tasks/Order.md", "# Order\n\n- [ ] One\n  detail\n- [ ] Two\n- [ ] Three\n\nfooter\n");
+        assertThat(taskService.moveTask("tasks/Order.md", 6, "tasks/Order.md", 3).line()).isEqualTo(3);
+        assertThat(vault.read("tasks/Order.md")).isEqualTo("# Order\n\n- [ ] Three\n- [ ] One\n  detail\n- [ ] Two\n\nfooter\n");
+        assertThat(taskService.moveTask("tasks/Order.md", 4, "tasks/Order.md", 0).line()).isEqualTo(5);
+        assertThat(vault.read("tasks/Order.md")).isEqualTo("# Order\n\n- [ ] Three\n- [ ] Two\n- [ ] One\n  detail\n\nfooter\n");
+        TaskService.Task moved = taskService.moveTask("tasks/Order.md", 5, "Tasks.md", 0);
+        assertThat(moved.notePath()).isEqualTo("Tasks.md");
+        assertThat(moved.line()).isEqualTo(4);
+        assertThat(vault.read("tasks/Order.md")).isEqualTo("# Order\n\n- [ ] Three\n- [ ] Two\n\nfooter\n");
+        assertThat(vault.read("Tasks.md")).isEqualTo("# Tasks\n- [ ] Call the nursery\n- [ ] Second\n- [ ] One\n  detail\n");
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> taskService.moveTask("tasks/Order.md", 1, "Tasks.md", 0));
     }
 
     @Test

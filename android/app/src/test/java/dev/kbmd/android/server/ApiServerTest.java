@@ -289,6 +289,17 @@ public class ApiServerTest {
         assertEquals("Tasks.md", json("POST", "/api/tasks", new JSONObject().put("text", "Call the nursery")).json().getString("notePath"));
         assertEquals("# Tasks\n- [ ] Call the nursery\n", new String(Files.readAllBytes(vault.resolve("Tasks.md")), StandardCharsets.UTF_8));
 
+        // dragging a task: before another task of the same note, or to the end of another note's tasks
+        json("POST", "/api/notes", new JSONObject().put("path", "Order.md").put("content", "- [ ] One\n  detail\n- [ ] Two\n- [ ] Three\n"));
+        JSONObject shifted = json("POST", "/api/tasks/move", new JSONObject().put("path", "Order.md").put("line", 4).put("targetPath", "Order.md").put("beforeLine", 1)).json();
+        assertEquals(1, shifted.getInt("line"));
+        assertEquals("- [ ] Three\n- [ ] One\n  detail\n- [ ] Two\n", new String(Files.readAllBytes(vault.resolve("Order.md")), StandardCharsets.UTF_8));
+        shifted = json("POST", "/api/tasks/move", new JSONObject().put("path", "Order.md").put("line", 2).put("targetPath", "Tasks.md").put("beforeLine", 0)).json();
+        assertEquals("Tasks.md", shifted.getString("notePath"));
+        assertEquals("# Tasks\n- [ ] Call the nursery\n- [ ] One\n  detail\n", new String(Files.readAllBytes(vault.resolve("Tasks.md")), StandardCharsets.UTF_8));
+        assertEquals("- [ ] Three\n- [ ] Two\n", new String(Files.readAllBytes(vault.resolve("Order.md")), StandardCharsets.UTF_8));
+        assertEquals(409, json("POST", "/api/tasks/move", new JSONObject().put("path", "Order.md").put("line", 9).put("targetPath", "Tasks.md").put("beforeLine", 0)).status);
+
         json("POST", "/api/notes", new JSONObject().put("path", "Board.md").put("content", "#kanban\n\n## To do\n\n- [ ] Write spec\n  detail\n- [ ] Review\n\n## Done\n"));
         JSONArray boards = new JSONArray(call("GET", "/api/kanban", null, null).text());
         assertEquals(2, boards.getJSONObject(0).getJSONArray("columns").length());

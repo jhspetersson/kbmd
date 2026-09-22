@@ -1,3 +1,5 @@
+import { redo, undo } from '@codemirror/commands';
+import { openSearchPanel } from '@codemirror/search';
 import type { EditorView } from '@codemirror/view';
 import {
   Bold,
@@ -11,12 +13,17 @@ import {
   List,
   ListChecks,
   Paperclip,
+  Redo2,
+  Scissors,
+  Search,
   Table,
+  Undo2,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, ApiError, type NoteRef } from '../api';
+import { api, ApiError, titleOf, type NoteRef } from '../api';
 import { MarkdownEditor } from './MarkdownEditor';
 import { Preview } from './Preview';
+import { ScrollKeeper } from './ScrollKeeper';
 
 export type ViewMode = 'edit' | 'split' | 'preview';
 
@@ -77,6 +84,12 @@ export function NoteView(props: Props) {
   const [dragging, setDragging] = useState(false);
 
   const view = useRef<EditorView | null>(null);
+  /** Runs a CodeMirror command (undo, find…) on the editor and keeps the focus there. */
+  const command = (run: (target: EditorView) => boolean) => {
+    if (!view.current) return;
+    run(view.current);
+    view.current.focus();
+  };
   const fileInput = useRef<HTMLInputElement>(null);
   const latest = useRef('');
   const dirty = useRef(false);
@@ -255,6 +268,42 @@ Cancel: load the version from disk`)) {
     editor.focus();
   };
 
+  /**
+   * Moves everything from the cursor line to the end into a new note next to this one, leaving a link behind.
+   * A heading on the cursor line names the new note and goes with it.
+   */
+  const splitHere = async () => {
+    const editor = view.current;
+    if (!editor || mode === 'preview') return;
+    const doc = editor.state.doc;
+    const line = doc.lineAt(editor.state.selection.main.head);
+    const rest = doc.sliceString(line.from).replace(/^\n+/, '');
+    if (line.number === 1 || !rest.trim()) {
+      onError('Put the cursor on the line where the new note should start');
+      return;
+    }
+    const heading = /^#{1,6}\s+(.+?)\s*#*\s*$/.exec(line.text)?.[1];
+    const title = (heading ?? window.prompt('Title of the new note', `${titleOf(path)} (part 2)`))?.trim().replace(/[\\/:*?"<>|]+/g, '-');
+    if (!title) return;
+    const folder = path.substring(0, path.lastIndexOf('/') + 1);
+    const target = `${folder}${title}.md`;
+    try {
+      await api.create(target, rest.endsWith('\n') ? rest : `${rest}\n`);
+    } catch (e) {
+      onError(`Could not create ${target}: ${(e as Error).message}`);
+      return;
+    }
+    // the editor keeps the head and the link; the autosave then writes it, in order with any earlier save
+    const head = doc.sliceString(0, line.from).replace(/\n*$/, '');
+    editor.dispatch({
+      changes: { from: 0, to: doc.length, insert: `${head}\n\n[[${title}]]\n` },
+      selection: { anchor: head.length + 2 },
+    });
+    await flush();
+    props.onFilesChanged();
+    props.onOpenLink(target, '', null);
+  };
+
   if (content === null) return <div className="empty-state">Loading…</div>;
 
   return (
@@ -276,6 +325,10 @@ Cancel: load the version from disk`)) {
       }}
     >
       <div className="toolbar">
+        <button title="Undo (Ctrl+Z)" disabled={mode === 'preview'} onClick={() => command(undo)}><Undo2 size={16} /></button>
+        <button title="Redo (Ctrl+Y)" disabled={mode === 'preview'} onClick={() => command(redo)}><Redo2 size={16} /></button>
+        <button title="Find and replace (Ctrl+F)" disabled={mode === 'preview'} onClick={() => command(openSearchPanel)}><Search size={16} /></button>
+        <span className="toolbar-separator" />
         <button title="Bold" onClick={() => wrap('**')}><Bold size={16} /></button>
         <button title="Italic" onClick={() => wrap('*')}><Italic size={16} /></button>
         <button title="Heading" onClick={() => prefixLine('## ')}><Heading size={16} /></button>
@@ -295,6 +348,9 @@ Cancel: load the version from disk`)) {
         </button>
         <button title="Upload files (you can also paste or drop them)" onClick={() => fileInput.current?.click()}>
           <Paperclip size={16} />
+        </button>
+        <button title="Split note here (the rest moves to a new note, linked from this one)" disabled={mode === 'preview'} onClick={() => void splitHere()}>
+          <Scissors size={16} />
         </button>
         <input
           ref={fileInput}
@@ -336,6 +392,7 @@ Cancel: load the version from disk`)) {
             />
           </div>
         )}
+        <ScrollKeeper path={path} mode={mode} previewReady={html !== ''} />
       </div>
       {dragging && <div className="drop-hint">Drop files to upload and embed them</div>}
     </div>
