@@ -232,11 +232,29 @@ public class ApiServerTest {
         assertFalse(card.getString("frontHtml").contains("flashcards"));
         assertEquals(4, card.getJSONObject("intervals").getInt("EASY"));
 
+        // Hard on a new card means "show me again this session", without the ease penalty Again carries
+        assertEquals(0, json("POST", "/api/flashcards/review", new JSONObject().put("id", card.getString("id")).put("rating", "HARD")).json().getInt("interval"));
+        assertEquals(0, card.getJSONObject("intervals").getInt("HARD"));
         JSONObject state = json("POST", "/api/flashcards/review", new JSONObject().put("id", card.getString("id")).put("rating", "GOOD")).json();
         assertEquals(1, state.getInt("interval"));
         String stored = new String(Files.readAllBytes(vault.resolve(".flashcards.json")), StandardCharsets.UTF_8);
         assertTrue(stored, stored.contains("\"ease\" : 2.5"));
         assertEquals(1, new JSONArray(call("GET", "/api/flashcards/due", null, null).text()).length());
+
+        // a forgotten card is due today again and always leads the queue; the new-card limit only trims what follows
+        json("POST", "/api/flashcards/review", new JSONObject().put("id", card.getString("id")).put("rating", "AGAIN"));
+        JSONArray ordered = new JSONArray(call("GET", "/api/flashcards/due?deck=geo", null, null).text());
+        assertEquals(2, ordered.length());
+        assertEquals(card.getString("id"), ordered.getJSONObject(0).getString("id"));
+        assertTrue(ordered.getJSONObject(1).getBoolean("fresh"));
+        JSONArray limited = new JSONArray(call("GET", "/api/flashcards/due?deck=geo&newLimit=0", null, null).text());
+        assertEquals(2, limited.length());
+        limited = new JSONArray(call("GET", "/api/flashcards/due?newLimit=1", null, null).text());
+        assertEquals(2, limited.length());
+        json("POST", "/api/notes", new JSONObject().put("path", "More.md").put("content", "#flashcards/geo\n\nA::1\nB::2\nC::3\n"));
+        limited = new JSONArray(call("GET", "/api/flashcards/due?deck=geo&newLimit=1", null, null).text());
+        assertEquals(2, limited.length());
+        assertEquals(card.getString("id"), limited.getJSONObject(0).getString("id"));
         assertTrue(call("GET", "/api/flashcards/export", null, null).text().startsWith("#separator:tab"));
     }
 

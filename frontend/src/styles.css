@@ -1166,6 +1166,21 @@ mark {
   justify-content: space-between;
   margin-top: 18px;
 }
+.new-limit {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9em;
+  color: var(--text-muted);
+}
+.new-limit input {
+  width: 4.5em;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: inherit;
+}
 .flashcards button:not(.link-button) {
   padding: 7px 16px;
   border: 1px solid var(--border);

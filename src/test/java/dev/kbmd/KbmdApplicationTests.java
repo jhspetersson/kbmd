@@ -168,20 +168,40 @@ class KbmdApplicationTests {
         notes.save("cards/Untagged.md", "ignored::because the note has no flashcards tag");
 
         assertThat(flashcards.decks()).containsExactly(new FlashcardService.Deck("spanish", 6, 6, 0, List.of("cards/Spanish.md")));
-        List<FlashcardService.StudyCard> due = flashcards.due("spanish");
+        List<FlashcardService.StudyCard> due = flashcards.due("spanish", 0);
         assertThat(due).hasSize(6);
         FlashcardService.StudyCard hola = due.stream().filter(card -> card.frontHtml().contains("hola")).findFirst().orElseThrow();
         assertThat(hola.frontHtml()).doesNotContain("flashcards");
         assertThat(due).anyMatch(card -> card.frontHtml().contains("[…]") && card.backHtml().contains("<strong>Madrid</strong>"));
         // the queue is shuffled: the same cards, not necessarily in note order
-        assertThat(flashcards.due("spanish")).extracting(FlashcardService.StudyCard::id).containsExactlyInAnyOrderElementsOf(due.stream().map(FlashcardService.StudyCard::id).toList());
+        assertThat(flashcards.due("spanish", 0)).extracting(FlashcardService.StudyCard::id).containsExactlyInAnyOrderElementsOf(due.stream().map(FlashcardService.StudyCard::id).toList());
 
+        // a new card rated Hard comes back this session with its ease untouched; Again also dents the ease
+        FlashcardService.CardState hard = flashcards.review(hola.id(), FlashcardService.Rating.HARD);
+        assertThat(hard.interval()).isZero();
+        assertThat(hard.ease()).isEqualTo(2.5);
+        assertThat(flashcards.review(hola.id(), FlashcardService.Rating.AGAIN).ease()).isCloseTo(2.3, org.assertj.core.data.Offset.offset(1e-9));
         FlashcardService.CardState state = flashcards.review(hola.id(), FlashcardService.Rating.GOOD);
         assertThat(state.interval()).isEqualTo(1);
-        assertThat(flashcards.due("spanish")).hasSize(5);
+        // Hard on a review card always moves it forward, at least by a day
+        assertThat(FlashcardService.schedule(state, FlashcardService.Rating.HARD, java.time.LocalDate.now()).interval()).isEqualTo(2);
+        assertThat(FlashcardService.schedule(new FlashcardService.CardState("2026-01-01", 10, 2.5, 3, 0), FlashcardService.Rating.HARD, java.time.LocalDate.now()).interval()).isEqualTo(12);
+        assertThat(flashcards.due("spanish", 0)).hasSize(5);
         FlashcardService.StudyCard other = due.stream().filter(card -> !card.id().equals(hola.id())).findFirst().orElseThrow();
         assertThat(flashcards.review(other.id(), FlashcardService.Rating.AGAIN).interval()).isZero();
-        assertThat(flashcards.due("spanish")).hasSize(5);
+        // the forgotten card is due again today and leads the queue; new cards follow, capped by the limit
+        for (int attempt = 0; attempt < 5; attempt++) {
+            List<FlashcardService.StudyCard> queue = flashcards.due("spanish", 0);
+            assertThat(queue).hasSize(5);
+            assertThat(queue.get(0).id()).isEqualTo(other.id());
+            assertThat(queue.get(0).fresh()).isFalse();
+            assertThat(queue.subList(1, 5)).allMatch(FlashcardService.StudyCard::fresh);
+        }
+        List<FlashcardService.StudyCard> limited = flashcards.due("spanish", 2);
+        assertThat(limited).hasSize(3);
+        assertThat(limited.get(0).id()).isEqualTo(other.id());
+        assertThat(limited.subList(1, 3)).allMatch(FlashcardService.StudyCard::fresh);
+        assertThat(flashcards.due("spanish", 10)).hasSize(5);
         assertThat(flashcards.exportForAnki("spanish", "http://localhost:8787")).contains("#deck column:3").contains("\tspanish\t");
     }
 

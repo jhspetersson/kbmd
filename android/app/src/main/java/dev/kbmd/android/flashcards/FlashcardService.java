@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 import dev.kbmd.android.index.NoteIndex;
 import dev.kbmd.android.markdown.MarkdownService;
@@ -67,14 +66,30 @@ public class FlashcardService {
     }
 
     /** Cards to study now, due reviews and new cards shuffled together so neighbouring lines do not give each other away. */
-    public synchronized List<StudyCard> due(String deck) {
+    /**
+     * Cards to study now: every due review first, then new cards, each group shuffled so neighbouring lines do not
+     * give each other away. A big note full of new cards therefore never buries the reviews.
+     *
+     * @param newLimit how many new cards to include after the reviews; 0 or less means all of them
+     */
+    public synchronized List<StudyCard> due(String deck, int newLimit) {
         LocalDate today = LocalDate.now();
-        List<StudyCard> queue = cards(loadStates()).stream()
-                .filter(card -> deck == null || deck.trim().isEmpty() || card.deck.equalsIgnoreCase(deck))
-                .filter(card -> card.state == null || !LocalDate.parse(card.state.due).isAfter(today))
-                .map(this::toStudyCard)
-                .collect(Collectors.toCollection(ArrayList::new));
-        Collections.shuffle(queue);
+        List<StudyCard> reviews = new ArrayList<>();
+        List<StudyCard> fresh = new ArrayList<>();
+        for (Card card : cards(loadStates())) {
+            if (deck != null && !deck.trim().isEmpty() && !card.deck.equalsIgnoreCase(deck)) {
+                continue;
+            }
+            if (card.state == null) {
+                fresh.add(toStudyCard(card));
+            } else if (!LocalDate.parse(card.state.due).isAfter(today)) {
+                reviews.add(toStudyCard(card));
+            }
+        }
+        Collections.shuffle(reviews);
+        Collections.shuffle(fresh);
+        List<StudyCard> queue = new ArrayList<>(reviews);
+        queue.addAll(newLimit > 0 && fresh.size() > newLimit ? fresh.subList(0, newLimit) : fresh);
         return queue;
     }
 
@@ -119,8 +134,11 @@ public class FlashcardService {
                 interval = 0;
                 break;
             case HARD:
-                ease -= 0.15;
-                interval = Math.max(1, (int) Math.round(interval * 1.2));
+                // still learning: see it again this session without a penalty; a review card creeps forward
+                if (interval > 0) {
+                    ease -= 0.15;
+                    interval = Math.max(interval + 1, (int) Math.round(interval * 1.2));
+                }
                 break;
             case GOOD:
                 interval = interval == 0 ? 1 : Math.max(interval + 1, (int) Math.round(interval * ease));

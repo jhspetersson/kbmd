@@ -219,7 +219,13 @@ export const api = {
   rawUrl: (path: string) => `/api/files/raw?${q(path)}`,
   exportUrl: '/api/export',
   decks: () => request<Deck[]>('/api/flashcards/decks'),
-  dueCards: (deck: string | null) => request<StudyCard[]>(`/api/flashcards/due${deck ? `?deck=${encodeURIComponent(deck)}` : ''}`),
+  dueCards: (deck: string | null, newLimit: number) => {
+    const params = new URLSearchParams();
+    if (deck) params.set('deck', deck);
+    if (newLimit > 0) params.set('newLimit', String(newLimit));
+    const query = params.toString();
+    return request<StudyCard[]>(`/api/flashcards/due${query ? `?${query}` : ''}`);
+  },
   review: (id: string, rating: Rating) => request<{ due: string; interval: number }>('/api/flashcards/review', json('POST', { id, rating })),
   ankiExportUrl: (deck: string | null) => `/api/flashcards/export${deck ? `?deck=${encodeURIComponent(deck)}` : ''}`,
   tasks: () => request<Task[]>('/api/tasks'),

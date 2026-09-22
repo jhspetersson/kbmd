@@ -17,6 +17,18 @@ const RATINGS: { rating: Rating; label: string }[] = [
   { rating: 'EASY', label: 'Easy' },
 ];
 
+const NEW_LIMIT_KEY = 'kbmd.flashcards.newLimit';
+
+/** How many new cards a session may add after the due reviews; 0 means all of them. */
+function loadNewLimit(): number {
+  try {
+    const value = Number(localStorage.getItem(NEW_LIMIT_KEY) ?? '0');
+    return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
+  } catch {
+    return 0;
+  }
+}
+
 function intervalLabel(days: number): string {
   if (days === 0) return 'soon';
   if (days < 30) return `${days} d`;
@@ -38,6 +50,15 @@ export function FlashcardsView({ revision, onOpen, onError }: Props) {
   const [decks, setDecks] = useState<Deck[] | null>(null);
   const [session, setSession] = useState<{ deck: string | null; queue: StudyCard[]; done: number } | null>(null);
   const [revealed, setRevealed] = useState(false);
+  const [newLimit, setNewLimit] = useState(loadNewLimit);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(NEW_LIMIT_KEY, String(newLimit));
+    } catch {
+      // private mode or blocked storage: the limit just resets next time
+    }
+  }, [newLimit]);
 
   const loadDecks = useCallback(() => {
     api.decks().then(setDecks).catch((e: Error) => onError(e.message));
@@ -47,7 +68,7 @@ export function FlashcardsView({ revision, onOpen, onError }: Props) {
 
   const start = (deck: string | null) => {
     api
-      .dueCards(deck)
+      .dueCards(deck, newLimit)
       .then((queue) => {
         setSession({ deck, queue, done: 0 });
         setRevealed(false);
@@ -144,7 +165,8 @@ export function FlashcardsView({ revision, onOpen, onError }: Props) {
     );
   }
 
-  const totalDue = decks?.reduce((sum, deck) => sum + deck.due + deck.fresh, 0) ?? 0;
+  const sessionSize = (deck: Deck) => deck.due + (newLimit > 0 ? Math.min(deck.fresh, newLimit) : deck.fresh);
+  const totalDue = decks?.reduce((sum, deck) => sum + sessionSize(deck), 0) ?? 0;
   return (
     <div className="flashcards">
       <div className="decks">
@@ -187,7 +209,7 @@ The capital of Spain is ==Madrid==.   (cloze)`}</pre>
                     <td className="due">{deck.due}</td>
                     <td>{deck.total}</td>
                     <td className="deck-actions">
-                      <button disabled={deck.due + deck.fresh === 0} onClick={() => start(deck.name)}>Study</button>
+                      <button disabled={sessionSize(deck) === 0} onClick={() => start(deck.name)}>Study</button>
                       <a href={api.ankiExportUrl(deck.name)} download title="Export this deck for Anki (File > Import)"><Download size={15} /></a>
                     </td>
                   </tr>
@@ -198,6 +220,16 @@ The capital of Spain is ==Madrid==.   (cloze)`}</pre>
               <button className="primary" disabled={totalDue === 0} onClick={() => start(null)}>
                 Study everything ({totalDue})
               </button>
+              <label className="new-limit" title="Due reviews always come first; new cards follow, up to this many per session (0 = all)">
+                New cards per session
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={newLimit}
+                  onChange={(event) => setNewLimit(Math.max(0, Math.floor(Number(event.target.value) || 0)))}
+                />
+              </label>
               <a href={api.ankiExportUrl(null)} download>Export all for Anki</a>
             </div>
           </>

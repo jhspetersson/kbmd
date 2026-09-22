@@ -32,8 +32,9 @@ public class FlashcardController {
     }
 
     @GetMapping("/due")
-    public List<FlashcardService.StudyCard> due(@RequestParam(required = false) String deck) {
-        return flashcards.due(deck);
+    public List<FlashcardService.StudyCard> due(@RequestParam(required = false) String deck,
+                                                @RequestParam(defaultValue = "0") int newLimit) {
+        return flashcards.due(deck, newLimit);
     }
 
     @PostMapping("/review")

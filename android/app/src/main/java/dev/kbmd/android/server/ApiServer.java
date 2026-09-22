@@ -198,7 +198,7 @@ public class ApiServer extends NanoHTTPD {
             }
             case "GET /flashcards/due": {
                 JSONArray cards = new JSONArray();
-                for (FlashcardService.StudyCard card : backend.flashcards.due(optionalParam(session, "deck"))) {
+                for (FlashcardService.StudyCard card : backend.flashcards.due(optionalParam(session, "deck"), optionalInt(session, "newLimit"))) {
                     JSONObject intervals = new JSONObject();
                     for (Map.Entry<FlashcardService.Rating, Integer> interval : card.intervals.entrySet()) {
                         intervals.put(interval.getKey().name(), interval.getValue());
@@ -556,6 +556,16 @@ public class ApiServer extends NanoHTTPD {
     private static String optionalParam(IHTTPSession session, String name) {
         List<String> values = session.getParameters().get(name);
         return values == null || values.isEmpty() ? null : values.get(0);
+    }
+
+    /** A numeric query parameter; missing or malformed counts as 0. */
+    private static int optionalInt(IHTTPSession session, String name) {
+        String value = optionalParam(session, name);
+        try {
+            return value == null ? 0 : Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     private static String urlEncode(String value) {
