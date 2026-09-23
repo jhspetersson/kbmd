@@ -1280,28 +1280,16 @@ mark {
   justify-content: space-between;
   margin-top: 18px;
 }
-.new-limit {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.9em;
-  color: var(--text-muted);
+.deck-settings {
+  margin-left: auto;
 }
-.new-limit input {
-  width: 4.5em;
-  padding: 4px 6px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
-  color: inherit;
-}
-.flashcards button:not(.link-button) {
+.flashcards button:not(.link-button):not(.icon-button) {
   padding: 7px 16px;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--bg);
 }
-.flashcards button:not(.link-button):hover:not(:disabled) {
+.flashcards button:not(.link-button):not(.icon-button):hover:not(:disabled) {
   border-color: var(--accent);
 }
 .flashcards button.primary {
@@ -1322,9 +1310,28 @@ mark {
 }
 .review-header {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
+  gap: 4px 14px;
   width: min(760px, 100%);
   color: var(--text-muted);
+}
+.review-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.review-stats .stat {
+  font-variant-numeric: tabular-nums;
+}
+.review-stats .due {
+  color: var(--ok);
+}
+.review-stats .fresh {
+  color: var(--syntax-type);
+}
+.review-stats .done {
+  color: var(--text-faint);
 }
 .review-card {
   width: min(760px, 100%);

@@ -1,8 +1,9 @@
 import DOMPurify from 'dompurify';
-import { Download, GraduationCap } from 'lucide-react';
+import { Download, GraduationCap, Settings2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, titleOf, type Deck, type Rating, type StudyCard } from '../api';
 import { highlightCodeBlocks } from '../highlight';
+import { Modal } from './Dialogs';
 
 interface Props {
   revision: number;
@@ -51,6 +52,7 @@ export function FlashcardsView({ revision, onOpen, onError }: Props) {
   const [session, setSession] = useState<{ deck: string | null; queue: StudyCard[]; done: number } | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [newLimit, setNewLimit] = useState(loadNewLimit);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -131,12 +133,17 @@ export function FlashcardsView({ revision, onOpen, onError }: Props) {
         </div>
       );
     }
+    const dueLeft = session.queue.filter((card) => !card.fresh).length;
+    const newLeft = session.queue.length - dueLeft;
     return (
       <div className="flashcards review">
         <div className="review-header">
           <button className="link-button" onClick={finish}>← Decks</button>
-          <span>
-            {current.deck} · {session.queue.length} left{current.fresh ? ' · new' : ''}
+          <span className="review-stats" title="Reviews still due · new cards left · cards done this session">
+            {current.deck}{current.fresh ? ' · new card' : ''}
+            <span className="stat due">{dueLeft} due</span>
+            <span className="stat fresh">{newLeft} new</span>
+            <span className="stat done">{session.done} done</span>
           </span>
           <button className="link-button" onClick={() => onOpen(current.notePath)}>Open {titleOf(current.notePath)}</button>
         </div>
@@ -168,13 +175,21 @@ export function FlashcardsView({ revision, onOpen, onError }: Props) {
   const sessionSize = (deck: Deck) => deck.due + (newLimit > 0 ? Math.min(deck.fresh, newLimit) : deck.fresh);
   const totalDue = decks?.reduce((sum, deck) => sum + sessionSize(deck), 0) ?? 0;
   return (
-    <div className="flashcards">
-      <div className="decks">
-        <h2><GraduationCap size={22} /> Flashcards</h2>
-        {decks && decks.length === 0 && (
-          <div className="deck-help">
-            <p>No cards yet. Tag a note with <code>#flashcards</code> (or <code>#flashcards/deck-name</code>) and write cards in it:</p>
-            <pre>{`#flashcards/spanish
+    <>
+      <div className="flashcards">
+        <div className="decks">
+          <h2>
+            <GraduationCap size={22} /> Flashcards
+            {decks && decks.length > 0 && (
+              <button className="icon-button deck-settings" title="Flashcard settings" onClick={() => setSettingsOpen(true)}>
+                <Settings2 size={18} />
+              </button>
+            )}
+          </h2>
+          {decks && decks.length === 0 && (
+            <div className="deck-help">
+              <p>No cards yet. Tag a note with <code>#flashcards</code> (or <code>#flashcards/deck-name</code>) and write cards in it:</p>
+              <pre>{`#flashcards/spanish
 
 hola::hello
 gato:::cat                  (also asks cat → gato)
@@ -184,57 +199,67 @@ A longer question
 Its answer, on as many lines as needed
 
 The capital of Spain is ==Madrid==.   (cloze)`}</pre>
-          </div>
-        )}
-        {decks && decks.length > 0 && (
-          <>
-            <table className="deck-table">
-              <thead>
-                <tr><th>Deck</th><th>New</th><th>Due</th><th>Total</th><th /></tr>
-              </thead>
-              <tbody>
-                {decks.map((deck) => (
-                  <tr key={deck.name}>
-                    <td>
-                      {deck.name}
-                      <span className="deck-notes">
-                        {deck.notes.map((path) => (
-                          <button key={path} className="link-button" title={`Open ${path}`} onClick={() => onOpen(path)}>
-                            {titleOf(path)}
-                          </button>
-                        ))}
-                      </span>
-                    </td>
-                    <td className="fresh">{deck.fresh}</td>
-                    <td className="due">{deck.due}</td>
-                    <td>{deck.total}</td>
-                    <td className="deck-actions">
-                      <button disabled={sessionSize(deck) === 0} onClick={() => start(deck.name)}>Study</button>
-                      <a href={api.ankiExportUrl(deck.name)} download title="Export this deck for Anki (File > Import)"><Download size={15} /></a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="deck-footer">
-              <button className="primary" disabled={totalDue === 0} onClick={() => start(null)}>
-                Study everything ({totalDue})
-              </button>
-              <label className="new-limit" title="Due reviews always come first; new cards follow, up to this many per session (0 = all)">
-                New cards per session
-                <input
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={newLimit}
-                  onChange={(event) => setNewLimit(Math.max(0, Math.floor(Number(event.target.value) || 0)))}
-                />
-              </label>
-              <a href={api.ankiExportUrl(null)} download>Export all for Anki</a>
             </div>
-          </>
-        )}
+          )}
+          {decks && decks.length > 0 && (
+            <>
+              <table className="deck-table">
+                <thead>
+                  <tr><th>Deck</th><th>New</th><th>Due</th><th>Total</th><th /></tr>
+                </thead>
+                <tbody>
+                  {decks.map((deck) => (
+                    <tr key={deck.name}>
+                      <td>
+                        {deck.name}
+                        <span className="deck-notes">
+                          {deck.notes.map((path) => (
+                            <button key={path} className="link-button" title={`Open ${path}`} onClick={() => onOpen(path)}>
+                              {titleOf(path)}
+                            </button>
+                          ))}
+                        </span>
+                      </td>
+                      <td className="fresh">{deck.fresh}</td>
+                      <td className="due">{deck.due}</td>
+                      <td>{deck.total}</td>
+                      <td className="deck-actions">
+                        <button disabled={sessionSize(deck) === 0} onClick={() => start(deck.name)}>Study</button>
+                        <a href={api.ankiExportUrl(deck.name)} download title="Export this deck for Anki (File > Import)"><Download size={15} /></a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="deck-footer">
+                <button className="primary" disabled={totalDue === 0} onClick={() => start(null)}>
+                  Study everything ({totalDue})
+                </button>
+                <a href={api.ankiExportUrl(null)} download>Export all for Anki</a>
+              </div>
+            </>
+          )}
+        </div>
       </div>
-    </div>
+      {settingsOpen && (
+        <Modal title="Flashcard settings" onClose={() => setSettingsOpen(false)}>
+          <div className="form-grid">
+            <label htmlFor="new-limit">New cards per session</label>
+            <div>
+              <input
+                id="new-limit"
+                className="text-input narrow"
+                type="number"
+                min={0}
+                step={1}
+                value={newLimit}
+                onChange={(event) => setNewLimit(Math.max(0, Math.floor(Number(event.target.value) || 0)))}
+              />
+              <div className="field-help">Due reviews always come first; new cards follow, up to this many per session (0 = all).</div>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </>
   );
 }
