@@ -33,6 +33,18 @@ export const STROKE_COLORS: { color: string; name: string }[] = [
 
 export const STROKE_WIDTHS = [0.5, 1, 2, 3, 4, 6, 8, 12];
 
+/**
+ * Excalidraw paints pencil strokes about this many times wider than a line of the same stroke width (a brush of
+ * 4.25 × width, widened again by pen pressure at a normal drawing speed). Pencil elements therefore store the palette
+ * width divided by this, so that every tool draws at the thickness the palette shows.
+ */
+export const PENCIL_SCALE = 5;
+export const isPencil = (type: string) => type === 'freedraw';
+/** The stroke width an element of this type stores for a palette width. */
+export const toolWidth = (width: number, type: string) => (isPencil(type) ? width / PENCIL_SCALE : width);
+/** The palette width behind an element's stored stroke width. */
+export const paletteWidth = (width: number, type: string) => Math.round((isPencil(type) ? width * PENCIL_SCALE : width) * 1000) / 1000;
+
 export interface StrokeStyle {
   color: string;
   width: number;
@@ -52,12 +64,16 @@ async function applyStroke(api: ExcalidrawImperativeAPI, change: { strokeColor: 
   const selected = state.selectedElementIds;
   const elements = api
     .getSceneElementsIncludingDeleted()
-    .map((element) => (selected[element.id] && !element.isDeleted ? newElementWith(element, change) : element));
+    .map((element) =>
+      selected[element.id] && !element.isDeleted
+        ? newElementWith(element, 'strokeWidth' in change ? { strokeWidth: toolWidth(change.strokeWidth, element.type) } : change)
+        : element,
+    );
   api.updateScene({
     elements,
     appState: {
       currentItemStrokeColor: 'strokeColor' in change ? change.strokeColor : state.currentItemStrokeColor,
-      currentItemStrokeWidth: 'strokeWidth' in change ? change.strokeWidth : state.currentItemStrokeWidth,
+      currentItemStrokeWidth: 'strokeWidth' in change ? toolWidth(change.strokeWidth, state.activeTool.type) : state.currentItemStrokeWidth,
     },
     captureUpdate: CaptureUpdateAction.IMMEDIATELY,
   });

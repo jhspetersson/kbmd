@@ -445,41 +445,6 @@ mark {
   gap: 2px;
   padding: 0 8px;
 }
-.heading-menu {
-  position: relative;
-  display: inline-flex;
-}
-.heading-menu-list {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  z-index: 50;
-  min-width: 220px;
-  max-width: min(70vw, 380px);
-  max-height: 60vh;
-  overflow: auto;
-  padding: 4px;
-  background: var(--bg-raised);
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  box-shadow: var(--shadow);
-}
-.heading-menu .heading-menu-list button {
-  display: block;
-  width: 100%;
-  padding: 6px 10px;
-  border: none;
-  border-radius: 4px;
-  background: none;
-  color: var(--text);
-  text-align: left;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.heading-menu .heading-menu-list button:hover {
-  background: var(--bg-hover);
-}
 .scroll-keeper {
   position: absolute;
   right: 18px;
