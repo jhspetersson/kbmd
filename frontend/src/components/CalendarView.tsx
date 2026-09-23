@@ -1,5 +1,5 @@
 import { Cake, CalendarPlus, ChevronLeft, ChevronRight, Download, ListTodo, Repeat, Smartphone } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { api, type Occurrence } from '../api';
 import { isNarrow, isNative } from '../native';
 
@@ -63,7 +63,11 @@ export function CalendarView({ revision, onOpen, onChanged, onError }: Props) {
       return false;
     }
   });
-  const [form, setForm] = useState<{ title: string; time: string; repeat: RepeatChoice } | null>(null);
+  const [form, setForm] = useState<{ title: string; time: string; repeat: RepeatChoice; end: string } | null>(null);
+  /** The days swept over while a finger or mouse button is held down on the grid. */
+  const [drag, setDrag] = useState<{ start: string; end: string } | null>(null);
+  const dragRef = useRef(drag);
+  dragRef.current = drag;
   const [busy, setBusy] = useState(false);
 
   const days = useMemo(() => gridDays(cursor.year, cursor.month), [cursor]);
@@ -133,13 +137,52 @@ export function CalendarView({ revision, onOpen, onChanged, onError }: Props) {
     }
   };
 
+  const dayAt = (x: number, y: number): string | null => {
+    const cell = document.elementFromPoint(x, y)?.closest<HTMLElement>('.calendar-cell');
+    return cell?.dataset.day ?? null;
+  };
+
+  // one swipe (or mouse drag) across cells selects a span of days and opens the form for a multi-day event
+  const dragStart = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    const day = (event.target as HTMLElement).closest<HTMLElement>('.calendar-cell')?.dataset.day;
+    if (day) setDrag({ start: day, end: day });
+  };
+  const dragMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const active = dragRef.current;
+    if (!active || (event.buttons & 1) === 0) return;
+    const day = dayAt(event.clientX, event.clientY);
+    if (day && day !== active.end) setDrag({ ...active, end: day });
+  };
+  const dragging = drag !== null;
+  useEffect(() => {
+    if (!dragging) return;
+    const end = (event: globalThis.PointerEvent) => {
+      const active = dragRef.current;
+      setDrag(null);
+      if (!active || event.type === 'pointercancel') return; // the browser took the gesture over for scrolling
+      const last = dayAt(event.clientX, event.clientY) ?? active.end;
+      if (last === active.start) return; // a plain tap: the cell's own click selects it
+      const [first, final] = last < active.start ? [last, active.start] : [active.start, last];
+      setSelected(first);
+      setForm({ title: '', time: '', repeat: 'none', end: final });
+    };
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
+    return () => {
+      window.removeEventListener('pointerup', end);
+      window.removeEventListener('pointercancel', end);
+    };
+  }, [dragging]);
+  const range = drag && drag.start !== drag.end ? (drag.end < drag.start ? [drag.end, drag.start] : [drag.start, drag.end]) : null;
+
   const spec = (): string => {
     if (!form) return '';
     const time = form.time.trim() ? ` ${form.time.trim()}` : '';
     const d = parse(selected);
     switch (form.repeat) {
       case 'none':
-        return `${selected}${time}`;
+        return `${selected}${form.end > selected ? `..${form.end}` : ''}${time}`;
       case 'daily':
         return `every day${time} from ${selected}`;
       case 'weekly':
@@ -201,7 +244,7 @@ export function CalendarView({ revision, onOpen, onChanged, onError }: Props) {
       </div>
 
       <div className="calendar-body">
-        <div className="calendar-grid">
+        <div className="calendar-grid" onPointerDown={dragStart} onPointerMove={dragMove}>
           {WEEKDAYS.map((d) => (
             <div key={d} className="calendar-weekday">
               {d}
@@ -211,10 +254,12 @@ export function CalendarView({ revision, onOpen, onChanged, onError }: Props) {
             const list = perDay.get(day) ?? [];
             const inMonth = Number(day.slice(5, 7)) - 1 === cursor.month;
             const shown = list.slice(0, isNarrow() ? 2 : 3);
+            const inRange = range !== null && day >= range[0] && day <= range[1];
             return (
               <button
                 key={day}
-                className={`calendar-cell${inMonth ? '' : ' outside'}${day === today ? ' today' : ''}${day === selected ? ' selected' : ''}`}
+                data-day={day}
+                className={`calendar-cell${inMonth ? '' : ' outside'}${day === today ? ' today' : ''}${day === selected ? ' selected' : ''}${inRange ? ' in-range' : ''}`}
                 onClick={() => setSelected(day)}
               >
                 <span className="calendar-daynum">{Number(day.slice(8, 10))}</span>
@@ -288,6 +333,12 @@ export function CalendarView({ revision, onOpen, onChanged, onError }: Props) {
               <input className="text-input" autoFocus placeholder="What?" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
               <div className="form-row">
                 <input className="text-input narrow" placeholder="HH:MM" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} />
+                {form.repeat === 'none' && (
+                  <label className="calendar-until" title="Last day of a multi-day event; drag across the grid to pick a span">
+                    to
+                    <input className="text-input" type="date" min={selected} value={form.end} onChange={(e) => setForm({ ...form, end: e.target.value })} />
+                  </label>
+                )}
                 <select className="text-input" value={form.repeat} onChange={(e) => setForm({ ...form, repeat: e.target.value as RepeatChoice })}>
                   <option value="none">once</option>
                   <option value="daily">every day</option>
@@ -310,13 +361,14 @@ export function CalendarView({ revision, onOpen, onChanged, onError }: Props) {
               </div>
             </form>
           ) : (
-            <button className="kanban-add-button" onClick={() => setForm({ title: '', time: '', repeat: 'none' })}>
+            <button className="kanban-add-button" onClick={() => setForm({ title: '', time: '', repeat: 'none', end: '' })}>
               <CalendarPlus size={14} /> Add event on this day
             </button>
           )}
           <p className="habits-footer">
-            Events come from notes tagged <code>#calendar</code>: <code>- 2026-09-25 14:30 Dentist</code>, <code>- every Mon,Wed 07:00 Gym</code>,{' '}
-            <code>- every month 1 Rent</code>, <code>- birthday 1990-03-14 Mom</code>. Daily notes and tasks with a due date show up too.
+            Events come from notes tagged <code>#calendar</code>: <code>- 2026-09-25 14:30 Dentist</code>, <code>- 2026-10-03..2026-10-05 Trip</code>,{' '}
+            <code>- every Mon,Wed 07:00 Gym</code>, <code>- every month 1 Rent</code>, <code>- birthday 1990-03-14 Mom</code>. Daily notes and tasks with a
+            due date show up too. Drag across days in the grid to add a multi-day event.
           </p>
         </aside>
       </div>
