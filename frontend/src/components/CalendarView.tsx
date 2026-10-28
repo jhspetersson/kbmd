@@ -63,7 +63,7 @@ export function CalendarView({ revision, onOpen, onChanged, onError }: Props) {
       return false;
     }
   });
-  const [form, setForm] = useState<{ title: string; time: string; repeat: RepeatChoice; end: string } | null>(null);
+  const [form, setForm] = useState<{ title: string; start: string; end: string; time: string; endTime: string; repeat: RepeatChoice } | null>(null);
   /** The days swept over while a finger or mouse button is held down on the grid. */
   const [drag, setDrag] = useState<{ start: string; end: string } | null>(null);
   const dragRef = useRef(drag);
@@ -165,7 +165,7 @@ export function CalendarView({ revision, onOpen, onChanged, onError }: Props) {
       if (last === active.start) return; // a plain tap: the cell's own click selects it
       const [first, final] = last < active.start ? [last, active.start] : [active.start, last];
       setSelected(first);
-      setForm({ title: '', time: '', repeat: 'none', end: final });
+      setForm({ title: '', start: first, end: final, time: '', endTime: '', repeat: 'none' });
     };
     window.addEventListener('pointerup', end);
     window.addEventListener('pointercancel', end);
@@ -174,30 +174,61 @@ export function CalendarView({ revision, onOpen, onChanged, onError }: Props) {
       window.removeEventListener('pointercancel', end);
     };
   }, [dragging]);
-  const range = drag && drag.start !== drag.end ? (drag.end < drag.start ? [drag.end, drag.start] : [drag.start, drag.end]) : null;
+
+  // the form keeps ISO dates and 24h times as text, like Calendar.md itself, so what is typed is what gets written
+  const isTime = (s: string) => /^\d{1,2}:\d{2}$/.test(s);
+  const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(parse(s).getTime());
+  const validForm = (f: NonNullable<typeof form>): boolean => {
+    const time = f.time.trim();
+    const endTime = f.endTime.trim();
+    const start = f.start.trim();
+    const end = f.end.trim();
+    if (!isDate(start)) return false;
+    if (time && !isTime(time)) return false;
+    if (endTime && (!time || !isTime(endTime))) return false;
+    if (f.repeat === 'none' && end && (!isDate(end) || end < start)) return false;
+    return true;
+  };
+
+  /** The day the event starts on: the form's own date when it is complete, else the day picked in the grid. */
+  const formStart = form && isDate(form.start.trim()) ? form.start.trim() : selected;
+  const formStartDate = parse(formStart);
+  /** Days highlighted in the grid: the span being dragged, or the one the open form describes. */
+  const formEnd = form && form.repeat === 'none' && isDate(form.end.trim()) && form.end.trim() > formStart ? form.end.trim() : null;
+  const range: [string, string] | null = drag
+    ? drag.start !== drag.end
+      ? drag.end < drag.start
+        ? [drag.end, drag.start]
+        : [drag.start, drag.end]
+      : null
+    : formEnd
+      ? [formStart, formEnd]
+      : null;
 
   const spec = (): string => {
     if (!form) return '';
-    const time = form.time.trim() ? ` ${form.time.trim()}` : '';
-    const d = parse(selected);
+    const time = form.time.trim() ? ` ${form.time.trim()}${form.endTime.trim() ? `-${form.endTime.trim()}` : ''}` : '';
+    const start = formStart;
+    const end = form.end.trim();
+    const d = formStartDate;
     switch (form.repeat) {
       case 'none':
-        return `${selected}${form.end > selected ? `..${form.end}` : ''}${time}`;
+        return `${start}${isDate(end) && end > start ? `..${end}` : ''}${time}`;
       case 'daily':
-        return `every day${time} from ${selected}`;
+        return `every day${time} from ${start}`;
       case 'weekly':
-        return `every ${DOW[d.getDay()]}${time} from ${selected}`;
+        return `every ${DOW[d.getDay()]}${time} from ${start}`;
       case 'monthly':
-        return `every month ${d.getDate()}${time} from ${selected}`;
+        return `every month ${d.getDate()}${time} from ${start}`;
       case 'yearly':
-        return `every year ${selected.slice(5)}${time}`;
+        return `every year ${start.slice(5)}${time}`;
       case 'birthday':
-        return `birthday ${selected}`;
+        return `birthday ${start}`;
     }
   };
 
   const add = async () => {
-    if (!form || !form.title.trim() || busy) return;
+    if (!form || !form.title.trim() || !validForm(form) || busy) return;
     setBusy(true);
     try {
       await api.addEvent(spec(), form.title.trim());
@@ -331,42 +362,93 @@ export function CalendarView({ revision, onOpen, onChanged, onError }: Props) {
               }}
             >
               <input className="text-input" autoFocus placeholder="What?" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-              <div className="form-row">
-                <input className="text-input narrow" placeholder="HH:MM" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} />
+              <select className="text-input" value={form.repeat} onChange={(e) => setForm({ ...form, repeat: e.target.value as RepeatChoice })}>
+                <option value="none">once</option>
+                <option value="daily">every day</option>
+                <option value="weekly">every {DOW[formStartDate.getDay()]}</option>
+                <option value="monthly">every month on the {formStartDate.getDate()}.</option>
+                <option value="yearly">every year</option>
+                <option value="birthday">birthday</option>
+              </select>
+              <div className="form-row calendar-span">
+                <label
+                  className="calendar-field"
+                  title={form.repeat === 'none' ? 'First day' : form.repeat === 'birthday' ? 'Date of birth' : 'First occurrence'}
+                >
+                  <span className="calendar-field-label">
+                    {form.repeat === 'none' ? 'from' : form.repeat === 'birthday' ? 'born' : form.repeat === 'yearly' ? 'on' : 'from'}
+                  </span>
+                  <input
+                    className="text-input date"
+                    type="date"
+                    value={form.start}
+                    aria-invalid={!isDate(form.start.trim())}
+                    onChange={(e) => setForm({ ...form, start: e.target.value })}
+                  />
+                </label>
                 {form.repeat === 'none' && (
-                  <label className="calendar-until" title="Last day of a multi-day event; drag across the grid to pick a span">
-                    to
-                    <input className="text-input" type="date" min={selected} value={form.end} onChange={(e) => setForm({ ...form, end: e.target.value })} />
+                  <label className="calendar-field" title="Last day; drag across the grid to pick a span">
+                    <span className="calendar-field-label">to</span>
+                    <input
+                      className="text-input date"
+                      type="date"
+                      min={formStart}
+                      value={form.end}
+                      aria-invalid={form.end.trim() !== '' && (!isDate(form.end.trim()) || form.end.trim() < formStart)}
+                      onChange={(e) => setForm({ ...form, end: e.target.value })}
+                    />
                   </label>
                 )}
-                <select className="text-input" value={form.repeat} onChange={(e) => setForm({ ...form, repeat: e.target.value as RepeatChoice })}>
-                  <option value="none">once</option>
-                  <option value="daily">every day</option>
-                  <option value="weekly">every {DOW[selectedDate.getDay()]}</option>
-                  <option value="monthly">every month on the {selectedDate.getDate()}.</option>
-                  <option value="yearly">every year</option>
-                  <option value="birthday">birthday (born this day)</option>
-                </select>
               </div>
-              <div className="field-help">
-                Written to <code>Calendar.md</code> as <code>- {spec()} …</code>
+              {form.repeat !== 'birthday' && (
+                <div className="form-row calendar-span">
+                  <label className="calendar-field" title="Start time, optional" data-hint={form.time.trim() ? undefined : 'all day'}>
+                    <span className="calendar-field-label">from</span>
+                    <input
+                      className="text-input time"
+                      type="time"
+                      value={form.time}
+                      aria-invalid={form.time.trim() !== '' && !isTime(form.time.trim())}
+                      onChange={(e) => setForm({ ...form, time: e.target.value })}
+                    />
+                  </label>
+                  <label className="calendar-field" title="End time, optional">
+                    <span className="calendar-field-label">to</span>
+                    <input
+                      className="text-input time"
+                      type="time"
+                      value={form.endTime}
+                      min={form.time.trim() || undefined}
+                      disabled={!form.time.trim()}
+                      aria-invalid={form.endTime.trim() !== '' && !isTime(form.endTime.trim())}
+                      onChange={(e) => setForm({ ...form, endTime: e.target.value })}
+                    />
+                  </label>
+                </div>
+              )}
+              <div className="field-help calendar-preview">
+                Written to <code>Calendar.md</code> as{' '}
+                <code>
+                  - {spec()}
+                  {form.title.trim() ? ` ${form.title.trim()}` : ' …'}
+                </code>
               </div>
               <div className="modal-actions">
                 <button type="button" onClick={() => setForm(null)}>
                   Cancel
                 </button>
-                <button type="submit" className="primary" disabled={busy || !form.title.trim()}>
+                <button type="submit" className="primary" disabled={busy || !form.title.trim() || !validForm(form)}>
                   Add
                 </button>
               </div>
             </form>
           ) : (
-            <button className="kanban-add-button" onClick={() => setForm({ title: '', time: '', repeat: 'none', end: '' })}>
+            <button className="kanban-add-button" onClick={() => setForm({ title: '', start: selected, end: selected, time: '', endTime: '', repeat: 'none' })}>
               <CalendarPlus size={14} /> Add event on this day
             </button>
           )}
           <p className="habits-footer">
-            Events come from notes tagged <code>#calendar</code>: <code>- 2026-09-25 14:30 Dentist</code>, <code>- 2026-10-03..2026-10-05 Trip</code>,{' '}
+            Events come from notes tagged <code>#calendar</code>: <code>- 2026-09-25 14:30-15:00 Dentist</code>, <code>- 2026-10-03..2026-10-05 Trip</code>,{' '}
             <code>- every Mon,Wed 07:00 Gym</code>, <code>- every month 1 Rent</code>, <code>- birthday 1990-03-14 Mom</code>. Daily notes and tasks with a
             due date show up too. Drag across days in the grid to add a multi-day event.
           </p>

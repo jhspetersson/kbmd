@@ -1917,15 +1917,97 @@ mark {
   border-color: var(--accent);
   background: var(--accent-soft);
 }
-.calendar-until {
+.calendar-field {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   color: var(--text-muted);
   white-space: nowrap;
 }
-.calendar-until input {
+.calendar-field input {
   width: auto;
+}
+/* "from … to …" rows: both fields stay on one line and share the width, even in the phone's sidebar */
+.calendar-form .form-row.calendar-span {
+  flex-wrap: nowrap;
+}
+.calendar-span .calendar-field {
+  flex: 1 1 0;
+  min-width: 0;
+  position: relative;
+}
+.calendar-field-label {
+  flex: none;
+  min-width: 2.8em;
+  text-align: right;
+}
+/* Android draws an empty date/time field as a blank box: say what empty means */
+.calendar-field[data-hint]::after {
+  content: attr(data-hint);
+  position: absolute;
+  left: calc(2.8em + 6px + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-faint);
+  pointer-events: none;
+}
+.calendar-field[data-hint] input::-webkit-datetime-edit {
+  color: transparent;
+}
+.calendar-field .text-input:disabled {
+  opacity: 0.5;
+}
+.calendar-field .text-input.date,
+.calendar-field .text-input.time {
+  width: 100%;
+  min-width: 0;
+  flex: 1 1 0;
+  padding-left: 8px;
+  padding-right: 8px;
+  /* Android Chrome / WebView draw these as a dropdown with a chevron; make them plain boxes */
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: none;
+  min-height: 34px;
+}
+:root[data-theme='dark'] .calendar-field .text-input.date,
+:root[data-theme='dark'] .calendar-field .text-input.time {
+  color-scheme: dark;
+}
+/* the field itself opens the picker on tap; the browser's own chevron/icon is noise here */
+.calendar-field .text-input.date::-webkit-calendar-picker-indicator,
+.calendar-field .text-input.time::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+  width: 0;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+}
+/* Android keeps the inner text box short of the field's right edge (room for the button above); let it fill */
+.calendar-field .text-input.date::-webkit-datetime-edit,
+.calendar-field .text-input.time::-webkit-datetime-edit {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  overflow: visible;
+}
+.calendar-field .text-input.date::-webkit-datetime-edit-fields-wrapper,
+.calendar-field .text-input.time::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+}
+.calendar-field .text-input.date,
+.calendar-field .text-input.time {
+  font-size: 15px;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+.calendar-form .text-input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+.calendar-preview code {
+  overflow-wrap: anywhere;
 }
 .calendar-daynum {
   align-self: flex-start;
