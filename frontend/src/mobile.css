@@ -344,3 +344,34 @@
     min-width: 0;
   }
 }
+
+@media (max-width: 760px) {
+  .games {
+    padding: 14px 10px;
+  }
+  .games-menu {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .game-card {
+    padding: 14px;
+  }
+  .minesweeper {
+    --mine-cell: 32px;
+  }
+  .game-stat {
+    min-width: 56px;
+    padding: 4px 8px;
+  }
+  .game-stat-value {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 760px) {
+  /* the board and the buttons under it must share one screen */
+  .tetris-board {
+    width: min(200px, calc((100vh - 460px) / 2), calc(100vw - 140px));
+    min-width: 140px;
+  }
+}

@@ -9,6 +9,7 @@ import {
   FolderPlus,
   GraduationCap,
   Files,
+  Gamepad2,
   Hash,
   ListTodo,
   Moon,
@@ -43,6 +44,7 @@ import { Lightbox, PromptDialog, QuickSwitcher, type PromptRequest } from './com
 import { FlashcardsView } from './components/FlashcardsView';
 import { FileTree, type TreeAction } from './components/FileTree';
 import { GraphView } from './components/GraphView';
+import { GamesView } from './games/GamesView';
 import { CalendarView } from './components/CalendarView';
 import { HabitsView } from './components/HabitsView';
 import { KanbanView } from './components/KanbanView';
@@ -60,6 +62,7 @@ const HABITS_TAB = '::habits';
 const TASKS_TAB = '::tasks';
 const KANBAN_TAB = '::kanban';
 const CALENDAR_TAB = '::calendar';
+const GAMES_TAB = '::games';
 const SPECIAL_TABS: Record<string, string> = {
   [GRAPH_TAB]: 'Graph view',
   [CARDS_TAB]: 'Flashcards',
@@ -67,6 +70,7 @@ const SPECIAL_TABS: Record<string, string> = {
   [TASKS_TAB]: 'Tasks',
   [KANBAN_TAB]: 'Kanban',
   [CALENDAR_TAB]: 'Calendar',
+  [GAMES_TAB]: 'Games',
 };
 const isFile = (tab: string | null): tab is string => tab !== null && !(tab in SPECIAL_TABS);
 const MODES: ViewMode[] = ['split', 'edit', 'preview'];
@@ -414,6 +418,7 @@ export function App() {
         else if (name === 'tasks') openPath(TASKS_TAB);
         else if (name === 'kanban') openPath(KANBAN_TAB);
         else if (name === 'calendar') openPath(CALENDAR_TAB);
+        else if (name === 'games') openPath(GAMES_TAB);
         else if (name === 'refresh') {
           void refresh().catch(() => undefined);
           refreshSyncStatus();
@@ -488,7 +493,9 @@ export function App() {
                 ? 'kanban'
                 : active === CALENDAR_TAB
                   ? 'calendar'
-                  : entryType(active);
+                  : active === GAMES_TAB
+                    ? 'games'
+                    : entryType(active);
   const togglePanel = (panel: LeftPanel) => setLeftPanel((current) => (current === panel ? null : panel));
   const words = content.trim() ? content.trim().split(/\s+/).length : 0;
   const pending = syncStatus?.pendingChanges ?? -1;
@@ -528,6 +535,8 @@ export function App() {
     );
   } else if (active && activeType === 'calendar') {
     main = <CalendarView revision={revision} onOpen={openPath} onError={fail} onChanged={() => void refresh()} />;
+  } else if (active && activeType === 'games') {
+    main = <GamesView revision={revision} />;
   } else if (active && activeType === 'habits') {
     main = (
       <HabitsView
@@ -599,6 +608,7 @@ export function App() {
         <button className={active === KANBAN_TAB ? 'on' : ''} title="Kanban" onClick={() => openPath(KANBAN_TAB)}><SquareKanban size={19} /></button>
         <button className={active === CALENDAR_TAB ? 'on' : ''} title="Calendar" onClick={() => openPath(CALENDAR_TAB)}><Calendar size={19} /></button>
         <button className={active === HABITS_TAB ? 'on' : ''} title="Habits" onClick={() => openPath(HABITS_TAB)}><Repeat size={19} /></button>
+        <button className={active === GAMES_TAB ? 'on' : ''} title="Games" onClick={() => openPath(GAMES_TAB)}><Gamepad2 size={19} /></button>
         <button title="Quick switcher (Ctrl+O)" onClick={() => setSwitcherOpen(true)}><Zap size={19} /></button>
         <button title="Today's daily note" onClick={() => void openDaily()}><CalendarDays size={19} /></button>
         <span className="ribbon-spacer" />

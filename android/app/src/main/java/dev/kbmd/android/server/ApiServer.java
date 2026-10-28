@@ -310,6 +310,16 @@ public class ApiServer extends NanoHTTPD {
                 JSONObject request = jsonBody(body);
                 return json(200, new JSONObject().put("done", backend.habits.toggle(requiredText(request, "id"), requiredText(request, "date"))));
             }
+            case "GET /games/scores":
+                return json(200, backend.games.scores());
+            case "POST /games/score": {
+                JSONObject request = jsonBody(body);
+                if (!request.has("score")) {
+                    throw HttpError.badRequest("'score' is required");
+                }
+                long best = backend.games.record(requiredText(request, "game"), request.getLong("score"), request.optBoolean("lowerIsBetter", false));
+                return json(200, new JSONObject().put("best", best));
+            }
             case "GET /sync/settings":
                 return json(200, backend.sync.settings().toJson(false));
             case "PUT /sync/settings":

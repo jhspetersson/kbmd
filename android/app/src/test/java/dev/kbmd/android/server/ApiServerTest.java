@@ -259,6 +259,24 @@ public class ApiServerTest {
     }
 
     @Test
+    public void keepsGameRecordsInTheVault() throws Exception {
+        assertEquals("{}", call("GET", "/api/games/scores", null, null).json().toString());
+        assertEquals(120, json("POST", "/api/games/score", new JSONObject().put("game", "2048").put("score", 120)).json().getLong("best"));
+        // a worse score changes nothing and the answer is the standing record
+        assertEquals(120, json("POST", "/api/games/score", new JSONObject().put("game", "2048").put("score", 80)).json().getLong("best"));
+        assertEquals(45, json("POST", "/api/games/score", new JSONObject().put("game", "mines-beginner").put("score", 45).put("lowerIsBetter", true)).json().getLong("best"));
+        assertEquals(30, json("POST", "/api/games/score", new JSONObject().put("game", "mines-beginner").put("score", 30).put("lowerIsBetter", true)).json().getLong("best"));
+        assertEquals(30, json("POST", "/api/games/score", new JSONObject().put("game", "mines-beginner").put("score", 50).put("lowerIsBetter", true)).json().getLong("best"));
+        JSONObject scores = call("GET", "/api/games/scores", null, null).json();
+        assertEquals(120, scores.getLong("2048"));
+        assertEquals(30, scores.getLong("mines-beginner"));
+        String stored = new String(Files.readAllBytes(vault.resolve(".games.json")), StandardCharsets.UTF_8);
+        assertEquals("{\n  \"2048\" : 120,\n  \"mines-beginner\" : 30\n}", stored);
+        assertEquals(400, json("POST", "/api/games/score", new JSONObject().put("game", "../etc").put("score", 1)).status);
+        assertEquals(400, json("POST", "/api/games/score", new JSONObject().put("game", "snake")).status);
+    }
+
+    @Test
     public void tracksHabitsLikeTheWebApp() throws Exception {
         json("POST", "/api/notes", new JSONObject().put("path", "Habits.md").put("content", "#habits\n\n- Exercise\n- Read (3x/week)\n"));
         JSONObject board = call("GET", "/api/habits?days=7", null, null).json();

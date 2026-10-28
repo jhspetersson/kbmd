@@ -26,6 +26,8 @@ the app is a Spring Boot server with a React UI, shipped as a single jar or Dock
   with recurrence for any calendar app
 - **Habit tracker** – list habits in a note tagged `#habits` (`- Gym (3x/week)` sets a weekly target), check days off
   in the Habits tab; streaks and weekly counts, history kept in `<vault>/.habits.json` (synced)
+- **Games** – 2048, Minesweeper, Tetris and Snake for a short break; keyboard, swipe and on-screen controls;
+  a game in progress survives switching tabs, best scores are kept in `<vault>/.games.json` (synced)
 - **Sync with GitHub / GitLab** – two-way Git sync over HTTPS using an access token, manual or on a timer
 - **Export** – the whole vault as a zip, or a single note (the download button next to the view switcher, or **Export…** in the file tree menu)
 

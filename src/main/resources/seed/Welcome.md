@@ -109,6 +109,11 @@ List the habits you want to keep in any note tagged `#habits`, one per list item
 ribbon) to check days off, see streaks and this week's count. Check-ins are kept in `.habits.json` in the vault,
 so they sync with your notes.
 
+## Games
+
+The gamepad button in the ribbon hides 2048, Minesweeper, Tetris and Snake for a short break. A game in progress
+stays where it was when you switch tabs; best scores are kept in `.games.json` in the vault, so they sync too.
+
 ## Everything else
 
 - [ ] Try the quick switcher: `Ctrl+O`

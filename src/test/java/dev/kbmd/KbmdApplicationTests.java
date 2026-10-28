@@ -1,6 +1,7 @@
 package dev.kbmd;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -9,6 +10,7 @@ import java.util.List;
 
 import dev.kbmd.calendar.CalendarService;
 import dev.kbmd.flashcards.FlashcardService;
+import dev.kbmd.games.GameService;
 import dev.kbmd.habits.HabitService;
 import dev.kbmd.index.NoteIndex;
 import dev.kbmd.markdown.MarkdownService;
@@ -22,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import dev.kbmd.web.LocalOriginFilter;
@@ -51,6 +54,8 @@ class KbmdApplicationTests {
     @Autowired
     HabitService habitService;
     @Autowired
+    GameService gameService;
+    @Autowired
     TaskService taskService;
     @Autowired
     CalendarService calendarService;
@@ -76,6 +81,18 @@ class KbmdApplicationTests {
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    @Test
+    void keepsGameRecordsInTheVault() throws IOException {
+        assertThat(gameService.record("2048", 120, false)).isEqualTo(120);
+        assertThat(gameService.record("2048", 80, false)).isEqualTo(120);
+        assertThat(gameService.record("mines-beginner", 45, true)).isEqualTo(45);
+        assertThat(gameService.record("mines-beginner", 30, true)).isEqualTo(30);
+        assertThat(gameService.record("mines-beginner", 50, true)).isEqualTo(30);
+        assertThat(gameService.scores()).containsEntry("2048", 120L).containsEntry("mines-beginner", 30L);
+        assertThat(Files.readString(vault.root().resolve(".games.json"))).isEqualTo("{\n  \"2048\" : 120,\n  \"mines-beginner\" : 30\n}");
+        assertThatThrownBy(() -> gameService.record("../etc", 1, false)).isInstanceOf(ResponseStatusException.class);
     }
 
     @Test

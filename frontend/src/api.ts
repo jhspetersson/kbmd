@@ -243,6 +243,9 @@ export const api = {
   calendarExportUrl: '/api/calendar/export',
   habits: (days: number) => request<HabitBoard>(`/api/habits?days=${days}`),
   toggleHabit: (id: string, date: string) => request<{ done: boolean }>('/api/habits/toggle', json('POST', { id, date })),
+  gameScores: () => request<Record<string, number>>('/api/games/scores'),
+  recordScore: (game: string, score: number, lowerIsBetter: boolean) =>
+    request<{ best: number }>('/api/games/score', json('POST', { game, score, lowerIsBetter })),
   syncSettings: () => request<SyncSettings>('/api/sync/settings'),
   saveSyncSettings: (settings: SyncSettings) => request<SyncSettings>('/api/sync/settings', json('PUT', settings)),
   syncStatus: () => request<SyncStatus>('/api/sync/status'),

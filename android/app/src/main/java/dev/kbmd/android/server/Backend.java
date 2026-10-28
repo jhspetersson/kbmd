@@ -5,6 +5,7 @@ import java.nio.file.Path;
 
 import dev.kbmd.android.calendar.CalendarService;
 import dev.kbmd.android.flashcards.FlashcardService;
+import dev.kbmd.android.games.GameService;
 import dev.kbmd.android.habits.HabitService;
 import dev.kbmd.android.index.NoteIndex;
 import dev.kbmd.android.markdown.MarkdownService;
@@ -22,6 +23,7 @@ public final class Backend {
     public final NoteService notes;
     public final FlashcardService flashcards;
     public final HabitService habits;
+    public final GameService games;
     public final TaskService tasks;
     public final CalendarService calendar;
     public final SyncService sync;
@@ -37,6 +39,7 @@ public final class Backend {
         notes = new NoteService(vault, index);
         flashcards = new FlashcardService(vault, index, markdown);
         habits = new HabitService(vault, index);
+        games = new GameService(vault);
         tasks = new TaskService(vault, notes, index);
         calendar = new CalendarService(vault, notes, index, tasks);
         sync = new SyncService(vault, index, privateDir);
