@@ -1,5 +1,5 @@
 import { CalendarClock, ListTodo, MoreHorizontal, Plus } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, type Task } from '../api';
 import { isTouch } from '../native';
 
@@ -49,10 +49,13 @@ export function TasksView({ revision, onOpen, onChanged, onError }: Props) {
     return () => window.removeEventListener('click', close);
   }, [menu]);
 
+  // a reload that is overtaken by a newer one (or by a tick meanwhile) must not bring back the old list
+  const loadId = useRef(0);
   const load = useCallback(() => {
+    const id = ++loadId.current;
     api
       .tasks()
-      .then(setTasks)
+      .then((list) => id === loadId.current && setTasks(list))
       .catch((e: Error) => onError(e.message));
   }, [onError]);
   useEffect(load, [load, revision]);
@@ -84,6 +87,7 @@ export function TasksView({ revision, onOpen, onChanged, onError }: Props) {
 
   const toggle = async (task: Task) => {
     if (!tasks) return;
+    loadId.current++; // whatever a load in flight answers is older than this
     setTasks(tasks.map((t) => (t === task ? { ...t, done: !t.done } : t)));
     try {
       await api.toggleTask(task.notePath, task.line);

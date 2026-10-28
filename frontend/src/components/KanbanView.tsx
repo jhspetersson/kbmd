@@ -1,5 +1,5 @@
 import { CalendarClock, MoreHorizontal, Plus, SquareKanban } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, type Board, type Card, type Column } from '../api';
 import { isTouch } from '../native';
 
@@ -38,10 +38,14 @@ export function KanbanView({ revision, onOpen, onCreate, onChanged, onError }: P
   const [adding, setAdding] = useState<{ column: string; text: string } | null>(null);
   const touch = isTouch();
 
+  // a reload that is overtaken by a newer one (or by a move meanwhile) must not bring back the old board
+  const loadId = useRef(0);
   const load = useCallback(() => {
+    const id = ++loadId.current;
     api
       .boards()
       .then((loaded) => {
+        if (id !== loadId.current) return;
         setBoards(loaded);
         setMenu(null);
       })
@@ -82,6 +86,7 @@ export function KanbanView({ revision, onOpen, onCreate, onChanged, onError }: P
   }
 
   const apply = (updated: Board) => {
+    loadId.current++; // whatever a load in flight answers is older than this
     setBoards(boards.map((b) => (b.path === updated.path ? updated : b)));
     setMenu(null); // lines shift after an edit, so a menu keyed by line must not survive it
     onChanged();

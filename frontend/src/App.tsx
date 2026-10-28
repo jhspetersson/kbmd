@@ -181,7 +181,7 @@ export function App() {
 
   useEffect(() => {
     // first visit: open the welcome note; and keep the active tab listed
-    if (active && !tabs.includes(active)) setTabs((current) => [...current, active]);
+    if (active) setTabs((current) => (current.includes(active) ? current : [...current, active]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const firstTree = useRef(true);
