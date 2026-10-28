@@ -4,3 +4,5 @@ frontend/public/fonts/
 .idea/
 *.iml
 .vscode/
+frontend/test-results/
+frontend/playwright-report/

@@ -10,7 +10,8 @@
     "build": "tsc --noEmit && vite build",
     "prebuild:android": "node scripts/copy-excalidraw-fonts.mjs",
     "build:android": "tsc --noEmit && vite build --outDir ../android/app/src/main/assets/web --emptyOutDir",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.3",
@@ -31,6 +32,7 @@
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",

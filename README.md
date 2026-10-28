@@ -88,6 +88,7 @@ through the GitHub / GitLab API. Build the APK with `androiduild.ps1`; see [and
 ```sh
 ./mvnw spring-boot:run -DskipFrontend=true   # API on :8787
 cd frontend && npm install && npm run dev     # UI on :5173 with hot reload, proxies /api
+cd frontend && npm run test:e2e              # browser tests: starts the backend on a temporary vault and the UI itself
 ```
 
 ```

@@ -20,6 +20,7 @@ Internet access is needed on the first build (Maven and npm dependencies).
 
 ```powershell
 .\build.ps1              # UI + jar + tests
+cd frontend; npm run test:e2e   # end-to-end tests in a real browser (Playwright), see below
 .\build.ps1 -SkipTests   # faster
 ```
 
